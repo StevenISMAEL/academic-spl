@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+// POC de extensión (COR-06): demuestra que un producto puede ENRIQUECER
+// el contrato base sin tocar academic_core.proto. Esta es la prueba de
+// que el punto de variación a nivel de comunicación funciona.
+//
+// Patrón usado: composición (wrapper message), no herencia (proto3 no
+// soporta herencia de mensajes). El mensaje base se importa intacto.
+
+package academic.core.v1.ext.higher_education;
+
+import "academic_core.proto";
+
+// Ejemplo: una universidad necesita registrar créditos académicos en
+// cada evaluación, algo que un colegio básico no necesita. En lugar de
+// modificar Evaluacion en el Core, el producto define su propia
+// extensión que compone el mensaje base.
+message EvaluacionConCreditos {
+  academic.core.v1.Evaluacion evaluacion_base = 1;
+  int32 creditos = 2;
+  string periodo_academico = 3;
+}

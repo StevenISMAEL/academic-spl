@@ -1,0 +1,39 @@
+# Core Asset — Plantilla Docker parametrizada del backend (COR-07)
+#
+# Los ARGs son inyectados por el pipeline CI/CD según la configuración
+# del producto que se está ensamblando. Esta misma plantilla construye
+# la imagen de CUALQUIER producto derivado de la línea.
+
+FROM python:3.11-slim
+
+ARG PRODUCT_CONFIG_PATH
+ARG PRODUCT_NAME
+
+ENV PRODUCT_CONFIG_PATH=${PRODUCT_CONFIG_PATH} \
+    PYTHONUNBUFFERED=1
+
+LABEL product="${PRODUCT_NAME}"
+LABEL maintainer="academic-spl-team"
+
+WORKDIR /app
+
+# Se copian SIEMPRE los Core Assets (son comunes a todos los productos)
+COPY core_assets/backend/ ./core_assets/backend/
+COPY requirements.txt .
+COPY run_app.py .
+
+# Se copia SOLO la carpeta del producto que se está ensamblando.
+# El pipeline CI/CD reemplaza <PRODUCT_DIR> antes del build.
+COPY products/<PRODUCT_DIR>/ ./products/<PRODUCT_DIR>/
+
+RUN pip install --no-cache-dir -r requirements.txt
+
+EXPOSE 8000
+
+CMD ["uvicorn", "run_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Ejemplo de build parametrizado (lo que hará el pipeline en Sprint 3):
+# docker build \
+#   --build-arg PRODUCT_CONFIG_PATH=products/colegio-basico/product_config.yaml \
+#   --build-arg PRODUCT_NAME=colegio-basico \
+#   -t academic-spl/colegio-basico:latest .

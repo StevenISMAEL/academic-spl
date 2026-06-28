@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+// Core Asset — Contrato base del dominio académico (COR-05).
+// Este archivo es propiedad del Core. Ningún producto debe modificarlo.
+// Para variabilidad de contrato, ver grpc_contracts/extensions/.
+
+package academic.core.v1;
+
+message Persona {
+  string id = 1;
+  string nombres = 2;
+  string apellidos = 3;
+  string documento_identidad = 4;
+}
+
+message Periodo {
+  string id = 1;
+  string nombre = 2;
+  string fecha_inicio = 3;
+  string fecha_fin = 4;
+}
+
+message Curso {
+  string id = 1;
+  string nombre = 2;
+  string periodo_id = 3;
+}
+
+message CursoRequest {
+  string id = 1;
+}
+
+message Evaluacion {
+  string id = 1;
+  string curso_id = 2;
+  string persona_id = 3;
+  double valor = 4;
+}
+
+service AcademicCoreService {
+  rpc RegistrarPersona (Persona) returns (Persona);
+  rpc ObtenerCurso (CursoRequest) returns (Curso);
+  rpc RegistrarEvaluacion (Evaluacion) returns (Evaluacion);
+}

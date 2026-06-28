@@ -1,0 +1,19 @@
+# products/universidad-compleja/product_config.yaml
+#
+# Este archivo NO es el producto completo (eso es Sprint 3).
+# En Sprint 1 solo lo usamos como segundo insumo de prueba para
+# demostrar que el MISMO Core Engine soporta una variante distinta
+# sin que se haya tocado una sola línea de core_assets/.
+
+metadata:
+  product_name: "Universidad Compleja Demo"
+  product_type: "higher_education"
+
+features:
+  attendance: false # En educación superior no siempre se controla asistencia
+  grading: true
+  enrollment: true # Inscripción por créditos es central en este producto
+
+academic_settings:
+  evaluation_scale: "numeric" # Escala 0-10
+  periods_per_year: 2 # Semestres
