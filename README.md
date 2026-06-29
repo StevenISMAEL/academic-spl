@@ -1,22 +1,35 @@
-# Academic SPL — Core Assets (Sprint 1)
+# Academic SPL — Core Assets (Sprint 1 — COMPLETO)
 
-Este paquete contiene los **Core Assets** construidos en el Sprint 1 de
-la Línea de Productos de Software del dominio académico. **No contiene
-ningún producto terminado** (eso corresponde a Sprint 2 y 3) — los
-archivos dentro de `products/` son únicamente configuraciones de
-ejemplo usadas para *probar* que el Core Engine resuelve variabilidad
-correctamente.
+Este paquete contiene **todos** los Core Assets planeados para el
+Sprint 1 de la Línea de Productos de Software del dominio académico.
+Los archivos dentro de `products/` siguen siendo únicamente
+configuraciones de ejemplo, usadas para *probar* el Core Engine — los
+productos completos corresponden a Sprint 2 y 3.
 
-## Mapeo con el backlog de Linear (Sprint 1)
+## Mapeo con el backlog de Linear (Sprint 1) — estado final
 
-| Tarea | Archivo |
-|---|---|
-| COR-02 — Motor de Feature Flags | `core_assets/backend/core_engine/config/feature_flags.py` |
-| COR-03 — App Factory FastAPI | `core_assets/backend/core_engine/main_factory.py` |
-| COR-04 — Entidades de dominio | `core_assets/backend/core_engine/domain/entities.py` |
-| COR-05 — Contrato gRPC base | `core_assets/backend/core_engine/grpc_contracts/academic_core.proto` |
-| COR-06 — POC extensión gRPC | `core_assets/backend/core_engine/grpc_contracts/extensions/higher_education_extension.proto` |
-| COR-07 — Plantilla Docker | `docker/templates/backend.Dockerfile.tpl` |
+| Tarea | Estado | Archivo | Evidencia |
+|---|---|---|---|
+| COR-01 — Feature Model formal | ✅ Done | `docs/feature_model.md` | Documento con notación FODA, tabla de binding time |
+| COR-02 — Motor de Feature Flags | ✅ Done | `config/feature_flags.py` | Probado con curl (200/404 según flag) |
+| COR-03 — App Factory FastAPI | ✅ Done | `main_factory.py` | Probado con dos configs simultáneas |
+| COR-04 — Entidades de dominio | ✅ Done | `domain/entities.py` | Usadas por ambos productos de prueba |
+| COR-05 — Contrato gRPC base | ✅ Done | `grpc_contracts/academic_core.proto` | Compilado sin errores |
+| COR-06 — Extensión gRPC | ✅ Done | `grpc_contracts/extensions/*.proto` | Compilado, importa el base sin modificarlo |
+| COR-07 — Plantilla Docker | ✅ Done | `docker/templates/backend.Dockerfile.tpl` | Plantilla parametrizada con ARGs |
+| COR-08 — Laravel Shell + Auth | 🟡 Done (código) / Pendiente ejecución real | `frontend/laravel-shell/app/Http/Controllers/Auth/LoginController.php` | Sintaxis validada con `php -l`; falta correr dentro de Laravel real (requiere Composer) |
+| COR-09 — FeatureGate | 🟡 Done (código) / Validado vía POC | `frontend/laravel-shell/app/Core/Services/FeatureGate.php` | Patrón probado end-to-end con `feature_gate_poc.php` contra el backend real |
+| COR-10 — Módulo Laravel de ejemplo | 🟡 Done (código) / Pendiente ejecución real | `frontend/laravel-shell/app/Modules/AttendanceModule/` | Sintaxis validada con `php -l` |
+| COR-11 — Esquema formal de configuración | ✅ Done | `config/config_schema.json` + `config/schema_loader.py` | Validado contra configs correctas e incorrectas |
+
+**Por qué COR-08/09/10 están en amarillo y no en verde:** el código
+está completo y sintácticamente verificado, pero no pudo ejecutarse
+dentro de un proyecto Laravel real en este entorno (Composer requiere
+acceso a Packagist, no disponible aquí). Ver
+`frontend/laravel-shell/INTEGRACION.md` para los pasos exactos de
+cómo terminarlo de validar en una máquina con Laravel instalado. Sé
+honesto con tu tutor sobre esta distinción — es exactamente el tipo de
+rigor que un proceso real de ingeniería de software exige.
 
 ## Instalación
 
@@ -24,7 +37,7 @@ correctamente.
 pip install -r requirements.txt
 ```
 
-## La Demo de Oro (para presentar mañana)
+## La Demo de Oro (para presentar)
 
 Abre dos terminales. En cada una, el **mismo código** (`run_app.py` →
 `main_factory.py`) se ejecuta con una configuración distinta:
@@ -44,53 +57,46 @@ PRODUCT_CONFIG_PATH=products/universidad-compleja/product_config.yaml \
 **Lo que debes mostrar en vivo:**
 
 ```bash
-# Vista general: features activos en cada producto
 curl http://127.0.0.1:8001/ | python3 -m json.tool
 curl http://127.0.0.1:8002/ | python3 -m json.tool
 
-# La prueba contundente: el mismo endpoint existe en uno y NO en el otro
-curl -i http://127.0.0.1:8001/attendance/   # -> 200 OK (colegio sí controla asistencia)
-curl -i http://127.0.0.1:8002/attendance/   # -> 404 Not Found (universidad no la activó)
+curl -i http://127.0.0.1:8001/attendance/   # -> 200 OK
+curl -i http://127.0.0.1:8002/attendance/   # -> 404 Not Found
 
 curl -i http://127.0.0.1:8001/enrollment/   # -> 404 Not Found
 curl -i http://127.0.0.1:8002/enrollment/   # -> 200 OK
-
-# La calificación también varía en formato, no solo en encendido/apagado
-curl http://127.0.0.1:8001/grading/   # escala "literal"
-curl http://127.0.0.1:8002/grading/   # escala "numeric"
 ```
 
-También puedes abrir `http://127.0.0.1:8001/docs` y `http://127.0.0.1:8002/docs`
-(Swagger UI autogenerado por FastAPI) y mostrar visualmente que cada
-instancia tiene un conjunto distinto de endpoints documentados.
+## Validar el esquema de configuración (COR-11)
+
+```bash
+python3 core_assets/backend/core_engine/config/schema_loader.py
+```
+
+Debe imprimir `[OK]` para ambos productos. Si quieres ver que también
+detecta errores, créate un YAML con un valor inválido y pásaselo como
+argumento.
 
 ## Validar el contrato gRPC
 
 ```bash
 cd core_assets/backend/core_engine/grpc_contracts
-pip install grpcio-tools
 python3 -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. academic_core.proto
 python3 -m grpc_tools.protoc -I. --python_out=. extensions/higher_education_extension.proto
 ```
 
-Si ambos comandos terminan sin error, el contrato base y su extensión
-(sin modificar el base) son válidos.
+## Validar el patrón FeatureGate (sin instalar Laravel todavía)
 
-## Por qué esto demuestra SPLE y no una app tradicional
+Con los dos backends corriendo (puertos 8001 y 8002 como arriba):
 
-1. **`core_assets/` no menciona "colegio" ni "universidad" en ningún
-   archivo.** Solo conoce conceptos genéricos: Persona, Curso,
-   Periodo, Evaluación.
-2. **La diferencia de comportamiento entre productos viene 100% de un
-   archivo YAML**, no de un `if` en el código.
-3. **El contrato gRPC se extiende, no se modifica**, validando que
-   agregar un producto nuevo no rompe a los productos existentes.
-4. **La plantilla Docker es parametrizada**: la misma plantilla
-   construye la imagen de cualquier producto según los `--build-arg`.
+```bash
+php core_assets/frontend/laravel-shell/feature_gate_poc.php http://127.0.0.1:8001/ http://127.0.0.1:8002/
+```
 
 ## Qué falta (a propósito) para Sprint 2 y 3
 
 - Persistencia real / multi-tenancy (`core_assets/backend/core_engine/persistence/`)
-- Laravel Shell con FeatureGate conectado al backend
+- Ejecutar el Laravel Shell dentro de un proyecto Laravel real instalado vía Composer
 - Pipeline CI/CD que automatice el build mostrado arriba
 - Segundo producto real, no solo su configuración de prueba
+

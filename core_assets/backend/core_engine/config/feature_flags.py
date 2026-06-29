@@ -17,13 +17,17 @@ import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from core_assets.backend.core_engine.config.schema_loader import validate_product_config
+
 
 class FeatureFlags:
     """Resuelve la configuración de variabilidad de un producto derivado."""
 
     def __init__(self, config_path: str | Path):
         self._config_path = Path(config_path)
-        self._config: Dict[str, Any] = self._load(self._config_path)
+        # COR-11: validación formal contra el esquema antes de aceptar la config.
+        # Si esto falla, el producto ni siquiera intenta ensamblarse.
+        self._config: Dict[str, Any] = validate_product_config(self._config_path)
         self._validate(self._config)
 
     @staticmethod

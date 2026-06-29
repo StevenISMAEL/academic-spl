@@ -1,0 +1,53 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Academic SPL — Product Configuration Schema",
+  "description": "Contrato formal que todo product_config.yaml debe cumplir para ser ensamblado por el Core Engine. Este esquema es en sí mismo un Core Asset: documenta el punto de variación, no su contenido.",
+  "type": "object",
+  "required": ["metadata", "features"],
+  "additionalProperties": false,
+  "properties": {
+    "metadata": {
+      "type": "object",
+      "required": ["product_name"],
+      "additionalProperties": false,
+      "properties": {
+        "product_name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre legible del producto derivado. Único lugar donde el nombre del producto puede aparecer fuera de products/."
+        },
+        "product_type": {
+          "type": "string",
+          "description": "Categoría libre del producto (ej. k12, higher_education). No restringido por enum a propósito: es un punto de extensión abierto."
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "Puntos de variación opcionales (Optional Features en notación FODA). Cada clave debe corresponder a un feature registrado en FEATURE_REGISTRY del Core Engine.",
+      "minProperties": 1,
+      "patternProperties": {
+        "^[a-z_]+$": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "academic_settings": {
+      "type": "object",
+      "description": "Puntos de variación paramétricos (no booleanos). Opcional: si se omite, el Core Engine usa sus valores por defecto.",
+      "additionalProperties": false,
+      "properties": {
+        "evaluation_scale": {
+          "type": "string",
+          "enum": ["numeric", "literal"],
+          "description": "Variación de tipo alternativa (XOR): el producto elige exactamente una opción de un conjunto cerrado."
+        },
+        "periods_per_year": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4,
+          "description": "Variación paramétrica de rango acotado."
+        }
+      }
+    }
+  }
+}
