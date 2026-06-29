@@ -1,0 +1,22 @@
+
+# Dependencias de PHP y Node
+/vendor/
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Archivos de entorno (¡NUNCA SUBIR EL .ENV!)
+.env
+.env.backup
+.env.production
+
+# Caché y almacenamiento local
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/framework/cache/data/*.php
+
+# Testing y reportes
+.phpunit.result.cache
+/phpunit.xml
