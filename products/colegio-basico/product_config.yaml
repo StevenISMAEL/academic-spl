@@ -5,14 +5,44 @@
 # Core Engine resuelve variabilidad correctamente.
 
 metadata:
-  product_name: "Colegio Básico Demo"
+  product_name: "Instituto Básico Demo"
   product_type: "k12"
 
 features:
   attendance: true # Un colegio básico controla asistencia diaria
   grading: true
-  enrollment: false # Matrícula anual simple, no se modela como feature aparte aún
+  enrollment: true # Matrícula anual simple, no se modela como feature aparte aún
 
 academic_settings:
   evaluation_scale: "literal" # Sobresaliente / Muy Bueno / etc.
   periods_per_year: 1
+
+database:
+  path: "products/colegio-basico/colegio_basico.db"
+
+seed_data:
+  personas:
+    - id: "P-001"
+      nombres: "Ana"
+      apellidos: "García López"
+      documento_identidad: "1001"
+    - id: "P-002"
+      nombres: "Luis"
+      apellidos: "Martínez Torres"
+      documento_identidad: "1002"
+    - id: "P-003"
+      nombres: "María"
+      apellidos: "Rodríguez Silva"
+      documento_identidad: "1003"
+  periodos:
+    - id: "PER-2024-A"
+      nombre: "Año Escolar 2024"
+      fecha_inicio: "2024-01-15"
+      fecha_fin: "2024-11-30"
+  cursos:
+    - id: "C-MAT"
+      nombre: "Matemáticas"
+      periodo_id: "PER-2024-A"
+    - id: "C-ESP"
+      nombre: "Español"
+      periodo_id: "PER-2024-A"

@@ -17,3 +17,6 @@ features:
 academic_settings:
   evaluation_scale: "numeric" # Escala 0-10
   periods_per_year: 2 # Semestres
+
+database:
+  path: "products/universidad-compleja/universidad_compleja.db"

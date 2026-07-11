@@ -1,13 +1,26 @@
 """
-Core Asset — Application Factory genérico (COR-03)
+Core Asset — Application Factory genérico (COR-03, actualizado COR-20)
 
 Esta es la pieza central de Application Engineering automatizado:
 construye una instancia de FastAPI montando ÚNICAMENTE los módulos
-(features) que la configuración del producto declara como activos.
+(features) que la configuración del producto declara como activos,
+más los Core Services que siempre se montan.
 
 Este archivo NUNCA debe importar nada de products/. La única forma en
 que "sabe" qué producto está construyendo es a través del path de
 configuración que recibe como parámetro.
+
+--- Estructura de montaje (COR-20) ---
+
+  CORE SERVICES (siempre montados — son Commonality)
+  ├── /periodos   → PeriodoRepository
+  ├── /cursos     → CursoRepository
+  └── /personas   → PersonaRepository
+
+  OPTIONAL FEATURES (montados según product_config.yaml — son Variabilidad)
+  ├── /attendance → AttendanceRepository  (si features.attendance: true)
+  ├── /grading    → GradeRepository       (si features.grading: true)
+  └── /enrollment → EnrollmentRepository  (si features.enrollment: true)
 """
 from __future__ import annotations
 
@@ -15,6 +28,19 @@ import os
 from fastapi import FastAPI
 
 from core_assets.backend.core_engine.config.feature_flags import FeatureFlags
+
+# ── Core Services (Commonality) ───────────────────────────────────────────────
+from core_assets.backend.core_engine.features.periodos.router import (
+    router as periodos_router,
+)
+from core_assets.backend.core_engine.features.cursos.router import (
+    router as cursos_router,
+)
+from core_assets.backend.core_engine.features.personas.router import (
+    router as personas_router,
+)
+
+# ── Optional Features (Variabilidad) ─────────────────────────────────────────
 from core_assets.backend.core_engine.features.attendance.router import (
     router as attendance_router,
 )
@@ -25,14 +51,22 @@ from core_assets.backend.core_engine.features.enrollment.router import (
     router as enrollment_router,
 )
 
-# Catálogo de Core Assets (features) disponibles para ensamblar.
-# Agregar un nuevo feature al Core consiste en: crear su router y
+# Catálogo de Core Assets opcionales (features).
+# Agregar un nuevo optional feature consiste en: crear su router y
 # registrarlo aquí UNA sola vez. Nunca se edita por producto.
 FEATURE_REGISTRY = {
     "attendance": attendance_router,
     "grading": grading_router,
     "enrollment": enrollment_router,
 }
+
+# Core Services siempre presentes — son Commonality, no variabilidad.
+# No se controlan con flags YAML porque todo producto académico los necesita.
+CORE_SERVICES = [
+    periodos_router,   # Base de la estructura temporal
+    cursos_router,     # Cursos dentro de cada período
+    personas_router,   # Estudiantes, docentes, etc.
+]
 
 
 def create_app(config_path: str | None = None) -> FastAPI:
@@ -59,14 +93,18 @@ def create_app(config_path: str | None = None) -> FastAPI:
             "Los módulos activos en esta instancia dependen exclusivamente de "
             f"'{resolved_path}'."
         ),
-        version="0.1.0-sprint1",
+        version="0.2.0-sprint2",
     )
 
     # Se guarda la referencia a los flags para que cualquier feature
-    # pueda consultar parámetros de configuración en tiempo de request
-    # (ver features/grading/router.py para un ejemplo).
+    # pueda consultar parámetros de configuración en tiempo de request.
     app.state.feature_flags = flags
 
+    # 1. Montar Core Services — siempre, en todo producto derivado
+    for core_router in CORE_SERVICES:
+        app.include_router(core_router)
+
+    # 2. Montar Optional Features — solo los declarados activos en el YAML
     mounted_features = []
     for feature_name, router in FEATURE_REGISTRY.items():
         if flags.is_active(feature_name):
@@ -79,8 +117,9 @@ def create_app(config_path: str | None = None) -> FastAPI:
         return {
             "product": flags.product_name(),
             "config_file_used": resolved_path,
-            "active_features": mounted_features,
-            "available_features_in_core": list(FEATURE_REGISTRY.keys()),
+            "core_services": ["periodos", "cursos", "personas"],
+            "active_optional_features": mounted_features,
+            "available_optional_features": list(FEATURE_REGISTRY.keys()),
             "academic_settings": flags.get_setting("academic_settings", default={}),
         }
 

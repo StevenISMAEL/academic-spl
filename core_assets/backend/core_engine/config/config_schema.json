@@ -48,6 +48,63 @@
           "description": "Variación paramétrica de rango acotado."
         }
       }
+    },
+    "database": {
+      "type": "object",
+      "description": "Configuración de persistencia del producto. Agregado en Sprint 2 (COR-12).",
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Ruta relativa (desde la raíz del proyecto) al archivo SQLite del producto. Ejemplo: products/colegio-basico/colegio_basico.db"
+        }
+      }
+    },
+    "seed_data": {
+      "type": "object",
+      "description": "Datos iniciales opcionales para el UserSeeder (COR-16). Si se omite, el seeder no inserta nada.",
+      "additionalProperties": false,
+      "properties": {
+        "personas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "nombres", "apellidos", "documento_identidad"],
+            "properties": {
+              "id": { "type": "string" },
+              "nombres": { "type": "string" },
+              "apellidos": { "type": "string" },
+              "documento_identidad": { "type": "string" }
+            }
+          }
+        },
+        "periodos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "nombre", "fecha_inicio", "fecha_fin"],
+            "properties": {
+              "id": { "type": "string" },
+              "nombre": { "type": "string" },
+              "fecha_inicio": { "type": "string" },
+              "fecha_fin": { "type": "string" }
+            }
+          }
+        },
+        "cursos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "nombre", "periodo_id"],
+            "properties": {
+              "id": { "type": "string" },
+              "nombre": { "type": "string" },
+              "periodo_id": { "type": "string" }
+            }
+          }
+        }
+      }
     }
   }
 }
