@@ -45,10 +45,34 @@
           "type": "integer",
           "minimum": 1,
           "maximum": 4,
-          "description": "Variación paramétrica de rango acotado."
+          "description": "Variación paramétrica de rango acotado. Cuántos períodos académicos tiene el año."
+        },
+        "passing_grade": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10,
+          "description": "Nota mínima para aprobar (CA-04 GradePassingChecker). Variación paramétrica: 7.0 en colegios, 6.0 en algunas universidades."
+        },
+        "attendance_min_percentage": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Porcentaje mínimo de asistencia para no estar en riesgo (CA-03 AttendanceCalculator). Reemplaza el valor hardcodeado anterior."
+        },
+        "max_enrollments_per_period": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "description": "Máximo de cursos en que un estudiante puede inscribirse por período (CA-05 EnrollmentLimitChecker)."
+        },
+        "grading_max_value": {
+          "type": "number",
+          "minimum": 1,
+          "description": "Valor máximo de la escala de notas. Por defecto 10. Algunos sistemas usan 5 o 100."
         }
       }
     },
+
     "database": {
       "type": "object",
       "description": "Configuración de persistencia del producto. Agregado en Sprint 2 (COR-12).",

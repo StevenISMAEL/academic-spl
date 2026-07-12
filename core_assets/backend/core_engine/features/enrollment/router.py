@@ -9,12 +9,13 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from core_assets.backend.core_engine.persistence.connection_resolver import get_db
 from core_assets.backend.core_engine.persistence.enrollment_repository import EnrollmentRepository
+from core_assets.backend.core_engine.domain.calculators.enrollment_limit_checker import EnrollmentLimitChecker
 
 router = APIRouter(prefix="/enrollment", tags=["enrollment"])
 
@@ -61,13 +62,30 @@ def get_enrollment(enrollment_id: str, db: Session = Depends(get_db)) -> Dict[st
     return enrollment
 
 
-@router.post("/", status_code=201, summary="Crear una nueva matrícula/inscripción")
+@router.post("/", status_code=201, summary="Crear una nueva matricula/inscripcion")
 def create_enrollment(
     payload: EnrollmentCreate,
+    request: Request,
     db: Session = Depends(get_db),
 ) -> Dict[str, Any]:
-    """Inscribe a una persona en un curso y persiste la matrícula."""
+    """Inscribe a una persona en un curso y persiste la matricula.
+
+    Valida primero el limite de inscripciones configurado en el YAML del
+    producto activo (CA-05 EnrollmentLimitChecker) antes de insertar.
+    """
     repo = EnrollmentRepository(db)
+
+    # CA-05: verificar limite de inscripciones del producto activo
+    flags = request.app.state.feature_flags
+    max_enrollments = flags.get_setting(
+        "academic_settings", "max_enrollments_per_period", default=8
+    )
+    activas = repo.count_active_enrollments(payload.persona_id)
+    try:
+        EnrollmentLimitChecker.validate_or_raise(activas, max_enrollments, payload.persona_id)
+    except ValueError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+
     try:
         return repo.create_enrollment(payload.model_dump())
     except ValueError as e:

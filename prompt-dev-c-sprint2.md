@@ -1,10 +1,11 @@
-# PROMPT DEV C — Sprint 2 (Auth + Pruebas + Derivación de Producto)
+# PROMPT DEV C — Sprint 2 (Auth + Pruebas + Validación de 3 Productos)
 # Copia y pega esto completo como primer mensaje en un chat nuevo
 
 Actúa como un Arquitecto de Software experto en testing (pytest),
-autenticación web, y Líneas de Productos de Software (SPLE). También
-debes conocer tanto Python (FastAPI) como PHP (Laravel) a nivel básico
-para poder coordinar entre los otros dos desarrolladores del equipo.
+autenticación JWT, y Líneas de Productos de Software (SPLE). También
+debes conocer Python (FastAPI) y cómo escribir tests que verifiquen
+que el mismo Core Asset se comporta diferente según la configuración,
+sin tocar el código del Core.
 
 ---
 
@@ -13,9 +14,8 @@ para poder coordinar entre los otros dos desarrolladores del equipo.
 Somos un equipo de 3 personas en un proyecto universitario. Estamos
 construyendo una **Línea de Productos de Software (SPL)** para el
 dominio académico. Construimos **Core Assets** reutilizables que
-permiten derivar múltiples productos (Colegio Básico, Universidad
-Compleja) cambiando solo un archivo de configuración YAML, sin tocar
-el código del Core.
+permiten derivar múltiples productos cambiando solo un YAML,
+sin tocar el código del Core.
 
 **Regla de oro que nunca se puede violar:**
 `core_assets/` no puede contener el nombre de ningún producto. Toda
@@ -26,145 +26,164 @@ diferencia entre productos viene del `product_config.yaml`.
 ## Stack tecnológico
 
 - Backend: Python 3.12 + FastAPI + SQLAlchemy 2.0 + SQLite + pytest
-- Frontend: PHP 8.3 + Laravel 11
+- Frontend: PHP + Laravel (Dev B lo maneja)
 - DevOps: Docker + GitHub Actions (Sprint 3)
 
 ---
 
-## Lo que YA está construido (Backend Sprint 2 — COMPLETADO por Dev A)
-
-### Estructura real del proyecto
+## Estructura real del proyecto (verificada y funcionando)
 
 ```
 academic-spl/
 ├── run_app.py
-├── requirements.txt                         ← sqlalchemy==2.0.30 ya está
+├── requirements.txt
 ├── core_assets/backend/core_engine/
 │   ├── config/
-│   │   ├── feature_flags.py                 ← motor de variabilidad
-│   │   ├── schema_loader.py                 ← valida configs contra JSON Schema
-│   │   └── config_schema.json               ← incluye database y seed_data
+│   │   ├── feature_flags.py                 ← Motor de variabilidad
+│   │   ├── schema_loader.py                 ← Valida configs contra JSON Schema
+│   │   └── config_schema.json               ← Contrato formal del YAML
 │   ├── domain/
 │   │   ├── entities.py                      ← Pydantic: Persona, Curso, Periodo, Evaluacion
 │   │   ├── validators/
 │   │   │   └── cedula_validator.py          ← CA-01: Módulo 10 Registro Civil Ecuador
 │   │   └── calculators/
 │   │       ├── grade_scale_converter.py     ← CA-02: literal/numeric según YAML
-│   │       └── attendance_calculator.py     ← CA-03: umbrales 80%/70% asistencia
+│   │       ├── attendance_calculator.py     ← CA-03: umbrales desde attendance_min_percentage del YAML
+│   │       ├── grade_passing_checker.py     ← CA-04: passing_grade del YAML
+│   │       └── enrollment_limit_checker.py  ← CA-05: max_enrollments_per_period del YAML
 │   ├── features/
-│   │   ├── personas/router.py               ← Core Service (siempre activo)
-│   │   ├── cursos/router.py                 ← Core Service (siempre activo)
-│   │   ├── periodos/router.py               ← Core Service (siempre activo)
-│   │   ├── attendance/router.py             ← Optional Feature (usa AttendanceCalculator)
-│   │   ├── grading/router.py                ← Optional Feature (usa GradeScaleConverter)
-│   │   └── enrollment/router.py             ← Optional Feature
+│   │   ├── personas/router.py               ← Core Service (CA-01)
+│   │   ├── cursos/router.py                 ← Core Service
+│   │   ├── periodos/router.py               ← Core Service
+│   │   ├── attendance/router.py             ← Optional Feature (CA-03)
+│   │   ├── grading/router.py                ← Optional Feature (CA-02 + CA-04)
+│   │   ├── enrollment/router.py             ← Optional Feature (CA-05)
+│   │   ├── schedule/router.py               ← Optional Feature (stub)
+│   │   ├── reports/router.py                ← Optional Feature (stub)
+│   │   └── certificates/router.py           ← Optional Feature (stub)
 │   ├── persistence/
-│   │   ├── connection_resolver.py           ← BD por producto desde YAML
-│   │   ├── models.py                        ← ORM: PersonaDB, CursoDB, PeriodoDB,
-│   │   │                                       EvaluacionDB, AsistenciaDB, MatriculaDB
-│   │   ├── migrate.py                       ← CLI idempotente de migraciones
-│   │   ├── seeder.py                        ← siembra desde seed_data del YAML
-│   │   ├── persona_repository.py            ← usa CedulaValidator internamente
+│   │   ├── connection_resolver.py
+│   │   ├── models.py                        ← 6 modelos ORM
+│   │   ├── migrate.py                       ← CLI idempotente
+│   │   ├── seeder.py                        ← siembra desde YAML
+│   │   ├── persona_repository.py            ← usa CA-01
 │   │   ├── curso_repository.py
 │   │   ├── periodo_repository.py
 │   │   ├── grade_repository.py
 │   │   ├── attendance_repository.py
-│   │   └── enrollment_repository.py
-│   └── main_factory.py                      ← Core Services siempre + Features por YAML
+│   │   └── enrollment_repository.py        ← tiene count_active_enrollments()
+│   └── main_factory.py                      ← FEATURE_REGISTRY con 6 features
 ├── products/
-│   ├── colegio-basico/
-│   │   ├── product_config.yaml              ← attendance:true, grading:true, enrollment:true
-│   │   └── colegio_basico.db               ← BD SQLite (ya migrada y sembrada)
-│   └── universidad-compleja/
-│       ├── product_config.yaml              ← attendance:false, grading:true, enrollment:true
-│       └── universidad_compleja.db         ← BD SQLite (ya migrada)
-└── docs/feature_model.md
-```
-
-### Comportamiento verificado en vivo
-
-```bash
-# GET / devuelve Core Services separados de Optional Features:
-# Colegio: core_services=[periodos,cursos,personas] + active_optional_features=[attendance,grading,enrollment]
-# Universidad: core_services=[periodos,cursos,personas] + active_optional_features=[grading,enrollment]
-
-# attendance da 200 en colegio y 404 en universidad (variabilidad verificada)
-# grading devuelve valor_display="Muy Bueno" en colegio y valor_display=8.5 en universidad
-# PersonaRepository valida cédula ecuatoriana antes de insertar
-```
-
-### Datos en los YAMLs actuales de los productos
-
-```yaml
-# products/colegio-basico/product_config.yaml
-metadata:
-  product_name: "Instituto Basico Demo"
-  product_type: "colegio"
-features:
-  attendance: true
-  grading: true
-  enrollment: true
-academic_settings:
-  evaluation_scale: "literal"
-  periods_per_year: 1
-database:
-  path: "products/colegio-basico/colegio_basico.db"
-seed_data:
-  personas:
-    - {id: "P-001", nombres: "Ana", apellidos: "Garcia Lopez", documento_identidad: "1001"}
-    - {id: "P-002", nombres: "Luis", apellidos: "Martinez Torres", documento_identidad: "1002"}
-    - {id: "P-003", nombres: "Maria", apellidos: "Rodriguez Silva", documento_identidad: "1003"}
-  periodos:
-    - {id: "PER-2024-A", nombre: "Ano Escolar 2024", fecha_inicio: "2024-01-15", fecha_fin: "2024-11-30"}
-  cursos:
-    - {id: "C-MAT", nombre: "Matematicas", periodo_id: "PER-2024-A"}
-    - {id: "C-ESP", nombre: "Espanol", periodo_id: "PER-2024-A"}
+│   ├── colegio-basico/product_config.yaml
+│   ├── universidad-compleja/product_config.yaml
+│   └── instituto-tecnico/product_config.yaml
+└── tests_core/   ← TU TRABAJO (crear esta carpeta)
 ```
 
 ---
 
-## Lo que están construyendo los otros devs en este sprint
+## Los 5 Core Assets que debes testear
 
-- **Dev A** (COMPLETADO): persistencia SQLAlchemy, 3 Core Services
-  (personas/cursos/periodos), 3 Optional Features con datos reales,
-  y 3 Core Assets de lógica de negocio (CedulaValidator, GradeScaleConverter,
-  AttendanceCalculator). El backend está listo.
+### CA-01 — CedulaValidator
+```python
+from core_assets.backend.core_engine.domain.validators.cedula_validator import CedulaValidator
+CedulaValidator.validate("1713175071")      # True
+CedulaValidator.validate("1234567890")      # False
+CedulaValidator.validate_or_raise("9999")   # ValueError
+```
 
-- **Dev B** (EN PROGRESO): `CoreEngineClient.php`, componentes Blade
-  (`<x-data-table>`, `<x-entity-form>`), vistas reales de 5 módulos
-  y layout con navegación condicional.
+### CA-02 — GradeScaleConverter
+```python
+from core_assets.backend.core_engine.domain.calculators.grade_scale_converter import GradeScaleConverter
+GradeScaleConverter.to_display(9.5, "literal")   # "Sobresaliente"
+GradeScaleConverter.to_display(8.5, "literal")   # "Muy Bueno"
+GradeScaleConverter.to_display(6.5, "literal")   # "Bueno"
+GradeScaleConverter.to_display(4.0, "literal")   # "Regular"
+GradeScaleConverter.to_display(2.0, "literal")   # "Insuficiente"
+GradeScaleConverter.to_display(8.5, "numeric")   # 8.5
+```
 
-Tu trabajo (Dev C) no bloquea a nadie — puedes empezar ya con los tests
-unitarios de los Core Assets sin esperar a Dev B.
+### CA-03 — AttendanceCalculator (umbrales del YAML, ya no hardcodeados)
+```python
+from core_assets.backend.core_engine.domain.calculators.attendance_calculator import AttendanceCalculator
+# Estado varía según threshold_approved (del YAML del producto):
+AttendanceCalculator.status(77.0, threshold_approved=80.0)  # "EN_RIESGO" (colegio)
+AttendanceCalculator.status(77.0, threshold_approved=75.0)  # "APROBADO" (universidad)
+AttendanceCalculator.status(72.0, threshold_approved=70.0)  # "APROBADO" (técnico)
+# Porcentaje:
+AttendanceCalculator.percentage(18, 20)  # 90.0
+# Resumen incluye los umbrales aplicados:
+result = AttendanceCalculator.summarize(records, threshold_approved=80.0)
+# result["umbral_aprobado"] → 80.0
+# result["umbral_riesgo"]   → 70.0
+```
+
+### CA-04 — GradePassingChecker (passing_grade del YAML)
+```python
+from core_assets.backend.core_engine.domain.calculators.grade_passing_checker import GradePassingChecker
+GradePassingChecker.passes(6.5, passing_grade=6.0)     # True  (Universidad)
+GradePassingChecker.passes(6.5, passing_grade=7.0)     # False (Colegio/Técnico)
+GradePassingChecker.status(6.5, passing_grade=6.0)     # "APROBADO"
+GradePassingChecker.status(6.5, passing_grade=7.0)     # "REPROBADO"
+grades = [{"valor": 6.5}, {"valor": 8.0}]
+GradePassingChecker.annotate_grades_list(grades, passing_grade=7.0)
+# → [{"valor": 6.5, "aprueba": False, "estado_aprobacion": "REPROBADO"},
+#    {"valor": 8.0, "aprueba": True,  "estado_aprobacion": "APROBADO"}]
+```
+
+### CA-05 — EnrollmentLimitChecker (max_enrollments_per_period del YAML)
+```python
+from core_assets.backend.core_engine.domain.calculators.enrollment_limit_checker import EnrollmentLimitChecker
+EnrollmentLimitChecker.can_enroll(5, max_enrollments=6)  # True  (Universidad)
+EnrollmentLimitChecker.can_enroll(5, max_enrollments=5)  # False (Técnico)
+EnrollmentLimitChecker.can_enroll(5, max_enrollments=8)  # True  (Colegio)
+EnrollmentLimitChecker.slots_remaining(3, max_enrollments=8)  # 5
+# Lanza ValueError con mensaje descriptivo:
+EnrollmentLimitChecker.validate_or_raise(5, 5, "P-001")  # ValueError
+```
+
+---
+
+## Configuración de los 3 productos (lo que diferencia el comportamiento)
+
+| Setting | Colegio (8001) | Universidad (8002) | Técnico (8003) |
+|---|---|---|---|
+| `evaluation_scale` | `literal` | `numeric` | `numeric` |
+| `passing_grade` | 7.0 | 6.0 | 7.0 |
+| `attendance_min_percentage` | 80.0 | 75.0 | 70.0 |
+| `max_enrollments_per_period` | 8 | 6 | 5 |
+| `attendance` feature | ✅ | ❌ | ❌ |
+| `grading` feature | ✅ | ✅ | ✅ |
+| `enrollment` feature | ✅ | ✅ | ✅ |
+| `schedule` feature | ❌ | ✅ | ✅ |
+| `reports` feature | ❌ | ✅ | ✅ |
+| `certificates` feature | ❌ | ✅ | ❌ |
 
 ---
 
 ## Tu trabajo en Sprint 2 (COR-22 a COR-25 + PROD-01 + PROD-02)
 
 Eres **Dev C**. Tienes tres responsabilidades:
-1. Construir el sistema de autenticación básico
-2. Construir el arnés de pruebas reutilizable y la suite de tests
-3. Derivar y validar el primer producto real: Colegio Básico
+1. Autenticación básica JWT
+2. Arnés de pruebas y suite de tests completa (5 Core Assets)
+3. Derivar y validar los 3 productos end-to-end
 
-### Las tareas en orden de dependencia
+### COR-22 — Autenticación básica JWT (hacer primero)
 
-**COR-22 — Autenticación básica** (hacer primero)
-
-Auth es un **Core Service** (siempre activo, no un Optional Feature opcional).
 Crea en el backend:
-- `core_assets/backend/core_engine/features/auth/router.py`
-  - `POST /auth/token` → recibe `{email, password}`, devuelve `{access_token, token_type}`
-  - Usa `python-jose` + `passlib[bcrypt]` para JWT — agregar a `requirements.txt`
-  - Verifica credenciales contra la tabla `personas` (campo `documento_identidad`
-    puede usarse como contraseña simple en demo, o agrega campo `password_hash`
-    al modelo `PersonaDB`)
-  - Registrar en `main_factory.py` como Core Service (siempre montado)
 
-- Middleware de FastAPI (`Depends`) para proteger endpoints:
-  ```python
-  # Opcional en demo — verificar token en el header Authorization: Bearer <token>
-  async def get_current_user(token: str = Depends(oauth2_scheme)) -> dict: ...
-  ```
+**Archivo:** `core_assets/backend/core_engine/features/auth/router.py`
+
+Endpoints:
+```
+POST /auth/token   → {"email": "...", "password": "..."} → {"access_token": "...", "token_type": "bearer"}
+GET  /auth/me      → devuelve datos del usuario autenticado (requiere token)
+```
+
+Implementación:
+- Usa `python-jose[cryptography]` + `passlib[bcrypt]` para JWT
+- Verifica credenciales contra la tabla `PersonaDB` (usar `documento_identidad` como contraseña demo)
+- Registrar en `main_factory.py` como **Core Service** (siempre montado, como personas/cursos)
 
 Agregar a `requirements.txt`:
 ```
@@ -172,39 +191,65 @@ python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 ```
 
-**COR-23 — `UserSeeder` genérico** (después de COR-22)
+Modelo Pydantic para el token:
+```python
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
 
-El seeder genérico para personas/cursos/periodos ya existe en
-`core_assets/backend/core_engine/persistence/seeder.py`. Necesitas:
-- Extenderlo O crear `user_seeder.py` separado para manejar la sección `users`
-  del YAML con contraseñas hasheadas:
-  ```yaml
-  # Agregar a product_config.yaml:
-  users:
-    - email: "admin@demo.local"
-      password: "admin123"
-      role: "admin"
-  ```
-- Hashear las contraseñas con `passlib` antes de insertar en BD
-- Reutilizable: `python user_seeder.py products/colegio-basico/product_config.yaml`
+class TokenData(BaseModel):
+    persona_id: str | None = None
+```
 
-**COR-24 — Arnés de pruebas reutilizable** (puede hacerse en paralelo con COR-22)
+---
 
-- Archivo: `tests_core/conftest.py`
-- Instalar: `pip install pytest pytest-asyncio httpx` y agregar a `requirements.txt`
+### COR-23 — Ampliar `schema_loader.py` para validar `instituto-tecnico`
+
+El `schema_loader.py` actual solo valida colegio y universidad. Ampliar
+para que valide los 3 productos:
+
+```powershell
+$env:PYTHONPATH = "."
+.venv\Scripts\python.exe core_assets/backend/core_engine/config/schema_loader.py
+# Resultado esperado:
+# [OK] products/colegio-basico/product_config.yaml
+# [OK] products/universidad-compleja/product_config.yaml
+# [OK] products/instituto-tecnico/product_config.yaml
+```
+
+---
+
+### COR-24 — Arnés de pruebas reutilizable
+
+**Archivo:** `tests_core/conftest.py`
+
+Instalar:
+```powershell
+$env:PYTHONPATH = "."
+.venv\Scripts\pip.exe install pytest pytest-asyncio httpx
+```
 
 Fixtures a crear:
 
 ```python
-# BD en memoria — se destruye al terminar cada test, sin archivos en disco
+import pytest
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from fastapi.testclient import TestClient
+
+from core_assets.backend.core_engine.persistence.models import Base
+from core_assets.backend.core_engine.config.feature_flags import FeatureFlags
+from core_assets.backend.core_engine.main_factory import create_app
+
+# BD en memoria — se destruye al terminar cada test
 @pytest.fixture
 def db_session():
-    engine = create_engine("sqlite:///:memory:", ...)
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
     Base.metadata.create_all(engine)
     with Session(engine) as session:
         yield session
 
-# FeatureFlags cargado desde los YAMLs reales (no mocks)
+# FeatureFlags cargados desde los YAMLs reales
 @pytest.fixture
 def flags_colegio():
     return FeatureFlags("products/colegio-basico/product_config.yaml")
@@ -213,7 +258,11 @@ def flags_colegio():
 def flags_universidad():
     return FeatureFlags("products/universidad-compleja/product_config.yaml")
 
-# App completa de colegio montada para tests de integración
+@pytest.fixture
+def flags_tecnico():
+    return FeatureFlags("products/instituto-tecnico/product_config.yaml")
+
+# Clientes HTTP para tests de integración
 @pytest.fixture
 def client_colegio():
     app = create_app("products/colegio-basico/product_config.yaml")
@@ -223,131 +272,253 @@ def client_colegio():
 def client_universidad():
     app = create_app("products/universidad-compleja/product_config.yaml")
     return TestClient(app)
+
+@pytest.fixture
+def client_tecnico():
+    app = create_app("products/instituto-tecnico/product_config.yaml")
+    return TestClient(app)
 ```
 
-**COR-25 — Suite de pruebas automatizadas** (después de COR-24)
+---
 
-Mínimo 12 tests distribuidos en 3 archivos:
+### COR-25 — Suite de tests automatizados (después de COR-24)
 
-**`tests_core/test_core_assets.py`** — tests unitarios de los Core Assets
-(estos NO requieren BD ni servidor):
-1. `test_cedula_validator_valida()` — `CedulaValidator.validate("1713175071")` → True
-2. `test_cedula_validator_invalida()` — `CedulaValidator.validate("1234567890")` → False
-3. `test_grade_scale_literal()` — `GradeScaleConverter.to_display(8.5, "literal")` → "Muy Bueno"
-4. `test_grade_scale_numeric()` — `GradeScaleConverter.to_display(8.5, "numeric")` → 8.5
-5. `test_attendance_status_aprobado()` — `AttendanceCalculator.status(90.0)` → "APROBADO"
-6. `test_attendance_status_riesgo()` — `AttendanceCalculator.status(75.0)` → "EN_RIESGO"
-7. `test_attendance_status_reprobado()` — `AttendanceCalculator.status(65.0)` → "REPROBADO_FALTA"
+Mínimo 20 tests distribuidos en 3 archivos:
 
-**`tests_core/test_repository.py`** — tests de persistencia:
-8. `test_create_grade_persists()` — crear nota y verificar en `list_grades()`
-9. `test_grade_scale_applied_in_list()` — verificar que `valor_display` aparece en GET /grading/
-10. `test_attendance_estadisticas_en_response()` — GET /attendance/ incluye campo `estadisticas`
-11. `test_persona_cedula_invalida_rechazada()` — POST /personas/ con cédula inválida → 422 o 409
+#### **`tests_core/test_core_assets.py`** — Tests unitarios (sin BD, sin servidor)
 
-**`tests_core/test_variability.py`** — tests de variabilidad SPLE:
-12. `test_attendance_activo_en_colegio()` — `GET /attendance/` → 200 con client_colegio
-13. `test_attendance_inactivo_en_universidad()` — `GET /attendance/` → 404 con client_universidad
-14. `test_grading_literal_en_colegio()` — `valor_display` es string en colegio
-15. `test_grading_numeric_en_universidad()` — `valor_display` es float en universidad
+```python
+# CA-01: CedulaValidator
+def test_cedula_valida(): assert CedulaValidator.validate("1713175071") is True
+def test_cedula_invalida(): assert CedulaValidator.validate("1234567890") is False
+def test_cedula_longitud_incorrecta(): assert CedulaValidator.validate("123") is False
+def test_cedula_validate_or_raise_invalida():
+    with pytest.raises(ValueError): CedulaValidator.validate_or_raise("1234567890")
 
-Comando para correr todos:
+# CA-02: GradeScaleConverter
+def test_grade_literal_sobresaliente(): assert GradeScaleConverter.to_display(9.5, "literal") == "Sobresaliente"
+def test_grade_literal_muy_bueno(): assert GradeScaleConverter.to_display(8.5, "literal") == "Muy Bueno"
+def test_grade_literal_regular(): assert GradeScaleConverter.to_display(4.0, "literal") == "Regular"
+def test_grade_numeric(): assert GradeScaleConverter.to_display(8.5, "numeric") == 8.5
+
+# CA-03: AttendanceCalculator (ahora con umbrales configurables)
+def test_attendance_percentage(): assert AttendanceCalculator.percentage(18, 20) == 90.0
+def test_attendance_approved_colegio(): assert AttendanceCalculator.status(85.0, threshold_approved=80.0) == "APROBADO"
+def test_attendance_en_riesgo_colegio(): assert AttendanceCalculator.status(77.0, threshold_approved=80.0) == "EN_RIESGO"
+def test_attendance_approved_universidad(): assert AttendanceCalculator.status(77.0, threshold_approved=75.0) == "APROBADO"
+def test_attendance_umbral_en_resumen():
+    records = [{"presente": True}] * 8 + [{"presente": False}] * 2
+    result = AttendanceCalculator.summarize(records, threshold_approved=80.0)
+    assert result["umbral_aprobado"] == 80.0
+    assert result["estado"] == "APROBADO"
+
+# CA-04: GradePassingChecker
+def test_grade_passing_universidad(): assert GradePassingChecker.passes(6.5, passing_grade=6.0) is True
+def test_grade_failing_colegio(): assert GradePassingChecker.passes(6.5, passing_grade=7.0) is False
+def test_grade_status(): assert GradePassingChecker.status(9.0, passing_grade=7.0) == "APROBADO"
+def test_grade_annotate_list():
+    result = GradePassingChecker.annotate_grades_list([{"valor": 6.5}], passing_grade=7.0)
+    assert result[0]["aprueba"] is False
+    assert result[0]["estado_aprobacion"] == "REPROBADO"
+
+# CA-05: EnrollmentLimitChecker
+def test_enrollment_can_enroll(): assert EnrollmentLimitChecker.can_enroll(5, max_enrollments=6) is True
+def test_enrollment_at_limit(): assert EnrollmentLimitChecker.can_enroll(5, max_enrollments=5) is False
+def test_enrollment_slots_remaining(): assert EnrollmentLimitChecker.slots_remaining(3, max_enrollments=8) == 5
+def test_enrollment_validate_or_raise():
+    with pytest.raises(ValueError): EnrollmentLimitChecker.validate_or_raise(5, 5, "P-001")
+```
+
+#### **`tests_core/test_variability.py`** — Tests de variabilidad SPLE
+
+```python
+# Tests de variabilidad booleana (Optional Features ON/OFF)
+def test_attendance_activo_colegio(client_colegio):
+    r = client_colegio.get("/attendance/")
+    assert r.status_code == 200
+
+def test_attendance_inactivo_universidad(client_universidad):
+    r = client_universidad.get("/attendance/")
+    assert r.status_code == 404
+
+def test_attendance_inactivo_tecnico(client_tecnico):
+    r = client_tecnico.get("/attendance/")
+    assert r.status_code == 404
+
+def test_schedule_inactivo_colegio(client_colegio):
+    r = client_colegio.get("/schedule/")
+    assert r.status_code == 404
+
+def test_schedule_activo_universidad(client_universidad):
+    r = client_universidad.get("/schedule/")
+    assert r.status_code == 200
+
+def test_reports_activo_universidad(client_universidad):
+    r = client_universidad.get("/reports/")
+    assert r.status_code == 200
+
+def test_certificates_inactivo_colegio(client_colegio):
+    r = client_colegio.get("/certificates/")
+    assert r.status_code == 404
+
+# Tests de variabilidad paramétrica (CA-02: evaluation_scale)
+def test_grading_scale_literal_en_colegio(client_colegio):
+    r = client_colegio.get("/grading/")
+    assert r.json()["evaluation_scale_used"] == "literal"
+
+def test_grading_scale_numeric_en_universidad(client_universidad):
+    r = client_universidad.get("/grading/")
+    assert r.json()["evaluation_scale_used"] == "numeric"
+
+# Tests de variabilidad paramétrica (CA-04: passing_grade)
+def test_passing_grade_colegio(client_colegio):
+    r = client_colegio.get("/grading/")
+    assert r.json()["passing_grade_used"] == 7.0
+
+def test_passing_grade_universidad(client_universidad):
+    r = client_universidad.get("/grading/")
+    assert r.json()["passing_grade_used"] == 6.0
+
+# Test que core services existen en los 3 productos
+def test_personas_core_service_colegio(client_colegio):
+    assert client_colegio.get("/personas/").status_code == 200
+
+def test_personas_core_service_universidad(client_universidad):
+    assert client_universidad.get("/personas/").status_code == 200
+
+def test_personas_core_service_tecnico(client_tecnico):
+    assert client_tecnico.get("/personas/").status_code == 200
+
+# Test de diagnóstico: core_services y active_optional_features correctos
+def test_diagnostico_colegio(client_colegio):
+    r = client_colegio.get("/")
+    data = r.json()
+    assert "attendance" in data["active_optional_features"]
+    assert "personas" in data["core_services"]
+
+def test_diagnostico_universidad_sin_attendance(client_universidad):
+    r = client_universidad.get("/")
+    data = r.json()
+    assert "attendance" not in data["active_optional_features"]
+    assert "schedule" in data["active_optional_features"]
+```
+
+#### **`tests_core/test_api_integration.py`** — Tests de integración con API real
+
+```python
+# Validación de cédula a través de la API
+def test_persona_cedula_invalida_rechazada(client_colegio):
+    r = client_colegio.post("/personas/", json={
+        "nombres": "Test", "apellidos": "Test", "documento_identidad": "1234567890"
+    })
+    assert r.status_code == 409
+
+# Notas devuelven campos de CA-02 y CA-04
+def test_grading_response_tiene_campos_ca02_ca04(client_colegio):
+    r = client_colegio.get("/grading/")
+    assert "evaluation_scale_used" in r.json()
+    assert "passing_grade_used" in r.json()
+
+# Attendance devuelve estadísticas de CA-03 con umbral
+def test_attendance_estadisticas_tienen_umbral(client_colegio):
+    r = client_colegio.get("/attendance/")
+    stats = r.json()["estadisticas"]
+    assert "umbral_aprobado" in stats
+    assert stats["umbral_aprobado"] == 80.0  # YAML colegio
+
+# Enrollment incluye campo total
+def test_enrollment_response_tiene_total(client_colegio):
+    r = client_colegio.get("/enrollment/")
+    assert "total" in r.json()
+```
+
+**Comando para correr todos:**
 ```powershell
 $env:PYTHONPATH = "."
-.venv\Scripts\python.exe -m pytest tests_core/ -v
+.venv\Scripts\python.exe -m pytest tests_core/ -v --tb=short
+
+# Solo unitarios (sin servidor):
+.venv\Scripts\python.exe -m pytest tests_core/test_core_assets.py -v
+
+# Solo variabilidad:
+.venv\Scripts\python.exe -m pytest tests_core/test_variability.py -v
 ```
 
-Output esperado cuando todo pasa:
+**Output esperado cuando todo pasa:**
 ```
-tests_core/test_core_assets.py::test_cedula_validator_valida PASSED
-tests_core/test_core_assets.py::test_grade_scale_literal PASSED
-...
-15 passed in X.XXs
-```
-
-**PROD-01 — Ampliar config_schema.json para la sección `users`** (puede hacerse antes)
-
-La sección `database` y `seed_data` ya están en el schema. Falta:
-```json
-"users": {
-  "type": "array",
-  "items": {
-    "type": "object",
-    "required": ["email", "password", "role"],
-    "properties": {
-      "email": { "type": "string" },
-      "password": { "type": "string" },
-      "role": { "type": "string", "enum": ["admin", "teacher", "student"] }
-    }
-  }
-}
+tests_core/test_core_assets.py::test_cedula_valida PASSED
+tests_core/test_core_assets.py::test_cedula_invalida PASSED
+... (20+ tests)
+20 passed in X.XXs
 ```
 
-Actualizar ambos `product_config.yaml` con usuarios de prueba y verificar:
+---
+
+### PROD-01 — Migrar y sembrar los 3 productos
+
 ```powershell
 $env:PYTHONPATH = "."
-.venv\Scripts\python.exe core_assets/backend/core_engine/config/schema_loader.py
-# [OK] products/colegio-basico/product_config.yaml cumple el esquema formal
-# [OK] products/universidad-compleja/product_config.yaml cumple el esquema formal
-```
 
-**PROD-02 — Derivar y validar Colegio Básico end-to-end** (hacer último)
-
-Crea `products/colegio-basico/RUN.md` con los pasos exactos:
-
-```powershell
-# 1. Instalar dependencias
-.venv\Scripts\pip.exe install -r requirements.txt
-
-# 2. Migrar BD (idempotente — safe correr múltiples veces)
-$env:PYTHONPATH = "."
+# Migrar los 3 productos
 .venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/colegio-basico/colegio_basico.db
+.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/universidad-compleja/universidad_compleja.db
+.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/instituto-tecnico/instituto_tecnico.db
 
-# 3. Sembrar datos académicos de ejemplo
+# Sembrar datos iniciales
 .venv\Scripts\python.exe core_assets/backend/core_engine/persistence/seeder.py products/colegio-basico/product_config.yaml
-
-# 4. Sembrar usuarios (después de COR-23)
-.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/user_seeder.py products/colegio-basico/product_config.yaml
-
-# 5. Levantar backend
-$env:PRODUCT_CONFIG_PATH = "products/colegio-basico/product_config.yaml"
-.venv\Scripts\python.exe -m uvicorn run_app:app --port 8001
-
-# 6. Verificar (en otra terminal)
-Invoke-RestMethod http://localhost:8001/ | ConvertTo-Json -Depth 3
-Invoke-RestMethod http://localhost:8001/personas/ | ConvertTo-Json -Depth 3
+.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/seeder.py products/instituto-tecnico/product_config.yaml
+# Universidad no tiene seed_data en el YAML — es intencional
 ```
 
-Validaciones end-to-end a documentar en `docs/sprint2_validation.md`:
-- [ ] `GET /` muestra `core_services` y `active_optional_features` separados
-- [ ] `GET /personas/` devuelve las 3 personas sembradas
-- [ ] `GET /grading/` devuelve `valor_display: "Sobresaliente"` para nota 9.5 (escala literal)
-- [ ] `GET /attendance/` devuelve campo `estadisticas` con `porcentaje_asistencia`
-- [ ] `GET /attendance/` en UNIVERSIDAD devuelve 404 (no existe el feature)
-- [ ] POST `/personas/` con cédula `"9999999999"` devuelve error (cédula inválida)
-- [ ] Todos los tests pasan: `.venv\Scripts\python.exe -m pytest tests_core/ -v`
+---
+
+### PROD-02 — Validar los 3 productos end-to-end
+
+Levanta los 3 servidores y crea `docs/sprint2_validation.md` con resultados de:
+
+**Variabilidad booleana (ver en Swagger UI):**
+- [ ] Colegio (8001): `/attendance` existe, `/schedule` NO existe
+- [ ] Universidad (8002): `/attendance` NO existe, `/schedule` SÍ existe, `/reports` SÍ existe
+- [ ] Técnico (8003): `/attendance` NO existe, `/schedule` SÍ existe, `/certificates` NO existe
+
+**Variabilidad paramétrica CA-02 (mismo valor, distinto display):**
+- [ ] Colegio: `GET /grading/` → `"valor_display": "Muy Bueno"` para nota 8.5
+- [ ] Universidad: `GET /grading/` → `"valor_display": 8.5` para nota 8.5
+
+**Variabilidad paramétrica CA-04 (mismo valor, distinto estado):**
+- [ ] Colegio: nota 6.5 → `"aprueba": false` (passing_grade=7.0)
+- [ ] Universidad: nota 6.5 → `"aprueba": true` (passing_grade=6.0)
+
+**Variabilidad paramétrica CA-03 (mismo porcentaje, distinto estado):**
+- [ ] Colegio: 77% asistencia → `"estado": "EN_RIESGO"` (umbral 80%)
+- [ ] Universidad: 77% asistencia → `"estado": "APROBADO"` (umbral 75%)
+
+**Validación CA-01 (cédula ecuatoriana):**
+- [ ] `POST /personas/` con cédula inválida → HTTP 409
+
+**Validación CA-05 (límite de matrículas):**
+- [ ] Técnico: inscribir 6 materias → la 6ta da HTTP 409 (max=5)
+- [ ] Colegio: inscribir 6 materias → funciona (max=8)
+
+**Tests automatizados:**
+- [ ] `pytest tests_core/ -v` → todos los tests pasan
 
 ---
 
 ## Coordinación con los otros devs
 
-- Los Core Assets de Dev A son testeable unitariamente ya — empieza
-  por `test_core_assets.py` (COR-25 parcial) sin esperar nada.
-- Para `test_variability.py` necesitas los `TestClient` fixtures —
-  Dev A ya terminó, el backend corre correctamente.
-- Para `PROD-02` (validación end-to-end con frontend) necesitas que
-  Dev B termine el layout. Si no está listo, valida primero solo la API.
+- **Dev A COMPLETADO**: backend 100% funcional con 5 Core Assets, 6 Optional Features y 3 productos.
+- **Dev B EN PROGRESO**: frontend Laravel. Puedes empezar con `test_core_assets.py` sin esperar a Dev B.
+- Para `test_variability.py` y `test_api_integration.py` solo necesitas el backend (ya está listo).
+- `PROD-02` requiere los 3 servidores corriendo simultáneamente.
 
 ---
 
 ## Lo que necesito de ti en este chat
 
-1. Empieza por COR-24 (arnés de pruebas) + `test_core_assets.py` — son
-   completamente independientes y demuestran los Core Assets de inmediato.
-2. Luego COR-25 completo — dame el comando exacto para correr todos los tests.
-3. COR-22 (auth) — dame el código completo con JWT, no pseudocódigo.
-4. PROD-01 antes de PROD-02 — actualizar el schema primero.
-5. Si ves inconsistencias con los principios SPLE, corrígeme — eres el
-   guardián de la calidad arquitectónica del proyecto.
-6. Todo el código debe respetar la regla de oro: ningún archivo en
-   `core_assets/` puede mencionar "colegio" ni "universidad".
+1. Empieza por **COR-24** (conftest.py) + **`test_core_assets.py`** — son completamente independientes.
+2. Luego **COR-25** completo — dame el comando exacto para correr todos los tests.
+3. **COR-22** (auth JWT) — código completo con JWT, no pseudocódigo.
+4. **PROD-01** antes de **PROD-02** — migrar y sembrar primero.
+5. Si ves código que viola la regla de oro (Core Asset con nombre de producto), corrígeme — eres el guardián de la calidad arquitectónica.
+6. Todos los archivos en `core_assets/` deben ser agnósticos al producto.

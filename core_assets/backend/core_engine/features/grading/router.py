@@ -22,6 +22,7 @@ from sqlalchemy.orm import Session
 from core_assets.backend.core_engine.persistence.connection_resolver import get_db
 from core_assets.backend.core_engine.persistence.grade_repository import GradeRepository
 from core_assets.backend.core_engine.domain.calculators.grade_scale_converter import GradeScaleConverter
+from core_assets.backend.core_engine.domain.calculators.grade_passing_checker import GradePassingChecker
 
 router = APIRouter(prefix="/grading", tags=["grading"])
 
@@ -56,15 +57,19 @@ def list_grades(
 
     flags = request.app.state.feature_flags
     scale = flags.get_setting("academic_settings", "evaluation_scale", default="numeric")
+    passing_grade = flags.get_setting("academic_settings", "passing_grade", default=7.0)
 
-    # CA-02: GradeScaleConverter convierte las notas a la escala del producto activo
+    # CA-02: convierte valor a escala del producto
     grades_con_display = GradeScaleConverter.convert_grades_list(grades, scale)
+    # CA-04: agrega aprueba y estado_aprobacion usando passing_grade del YAML
+    grades_anotadas = GradePassingChecker.annotate_grades_list(grades_con_display, passing_grade)
 
     return {
         "feature": "grading",
         "evaluation_scale_used": scale,
-        "total": len(grades_con_display),
-        "data": grades_con_display,
+        "passing_grade_used": passing_grade,
+        "total": len(grades_anotadas),
+        "data": grades_anotadas,
     }
 
 
@@ -82,7 +87,11 @@ def get_grade(
 
     flags = request.app.state.feature_flags
     scale = flags.get_setting("academic_settings", "evaluation_scale", default="numeric")
+    passing_grade = flags.get_setting("academic_settings", "passing_grade", default=7.0)
     grade["valor_display"] = GradeScaleConverter.to_display(grade["valor"], scale)
+    # CA-04: anotar si aprueba según el passing_grade del YAML
+    grade["aprueba"] = GradePassingChecker.passes(grade["valor"], passing_grade)
+    grade["estado_aprobacion"] = GradePassingChecker.status(grade["valor"], passing_grade)
     return grade
 
 

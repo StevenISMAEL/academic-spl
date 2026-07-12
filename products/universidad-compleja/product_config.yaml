@@ -1,22 +1,27 @@
 # products/universidad-compleja/product_config.yaml
 #
-# Este archivo NO es el producto completo (eso es Sprint 3).
-# En Sprint 1 solo lo usamos como segundo insumo de prueba para
-# demostrar que el MISMO Core Engine soporta una variante distinta
-# sin que se haya tocado una sola línea de core_assets/.
+# Producto derivado: Universidad Compleja Demo
+# Derivado de la Linea de Productos Academica sin modificar el Core.
 
 metadata:
   product_name: "Universidad Compleja Demo"
   product_type: "higher_education"
 
 features:
-  attendance: false # En educación superior no siempre se controla asistencia
-  grading: true
-  enrollment: true # Inscripción por créditos es central en este producto
+  attendance: false     # En educacion superior no siempre se controla asistencia
+  grading: true         # Calificaciones con escala numerica
+  enrollment: true      # Inscripcion por creditos — central en universidad
+  schedule: true        # Universidad maneja horarios por aula y salon
+  reports: true         # Reportes academicos formales requeridos
+  certificates: true    # Emite certificados de aprobacion y actas
 
 academic_settings:
-  evaluation_scale: "numeric" # Escala 0-10
-  periods_per_year: 2 # Semestres
+  evaluation_scale: "numeric"       # Escala numerica 0-10
+  periods_per_year: 2               # Semestres A y B
+  passing_grade: 6.0                # Universidad aprueba con 6/10 (mas permisivo que colegio)
+  attendance_min_percentage: 75.0   # 75% minimo (menos estricto que colegio)
+  max_enrollments_per_period: 6     # Maximo 6 materias por semestre (creditos)
+  grading_max_value: 10             # Escala sobre 10
 
 database:
   path: "products/universidad-compleja/universidad_compleja.db"

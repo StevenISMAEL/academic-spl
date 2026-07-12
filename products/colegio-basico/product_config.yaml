@@ -1,21 +1,27 @@
 # products/colegio-basico/product_config.yaml
 #
-# Este archivo NO es el producto completo (eso es Sprint 2).
-# En Sprint 1 solo lo usamos como insumo de prueba para validar que el
-# Core Engine resuelve variabilidad correctamente.
+# Producto derivado: Instituto Basico Demo (Colegio)
+# Derivado de la Linea de Productos Academica sin modificar el Core.
 
 metadata:
-  product_name: "Instituto Básico Demo"
+  product_name: "Instituto Basico Demo"
   product_type: "k12"
 
 features:
-  attendance: true # Un colegio básico controla asistencia diaria
-  grading: true
-  enrollment: true # Matrícula anual simple, no se modela como feature aparte aún
+  attendance: true      # Colegio controla asistencia diaria
+  grading: true         # Calificaciones con escala literal
+  enrollment: true      # Matricula anual
+  schedule: false       # Horario integrado — no se gestiona aqui
+  reports: false        # Reportes los emite el MINEDUC directamente
+  certificates: false   # Los certificados los emite el rectorado en papel
 
 academic_settings:
-  evaluation_scale: "literal" # Sobresaliente / Muy Bueno / etc.
-  periods_per_year: 1
+  evaluation_scale: "literal"       # Sobresaliente / Muy Bueno / Bueno / Regular / Insuficiente
+  periods_per_year: 1               # Un solo periodo anual
+  passing_grade: 7.0                # Nota minima para aprobar (CA-04)
+  attendance_min_percentage: 80.0   # Minimo 80% de asistencia requerido (CA-03)
+  max_enrollments_per_period: 8     # Maximo 8 materias por periodo (CA-05)
+  grading_max_value: 10             # Escala sobre 10
 
 database:
   path: "products/colegio-basico/colegio_basico.db"
@@ -24,25 +30,25 @@ seed_data:
   personas:
     - id: "P-001"
       nombres: "Ana"
-      apellidos: "García López"
+      apellidos: "Garcia Lopez"
       documento_identidad: "1001"
     - id: "P-002"
       nombres: "Luis"
-      apellidos: "Martínez Torres"
+      apellidos: "Martinez Torres"
       documento_identidad: "1002"
     - id: "P-003"
-      nombres: "María"
-      apellidos: "Rodríguez Silva"
+      nombres: "Maria"
+      apellidos: "Rodriguez Silva"
       documento_identidad: "1003"
   periodos:
     - id: "PER-2024-A"
-      nombre: "Año Escolar 2024"
+      nombre: "Ano Escolar 2024"
       fecha_inicio: "2024-01-15"
       fecha_fin: "2024-11-30"
   cursos:
     - id: "C-MAT"
-      nombre: "Matemáticas"
+      nombre: "Matematicas"
       periodo_id: "PER-2024-A"
     - id: "C-ESP"
-      nombre: "Español"
+      nombre: "Espanol"
       periodo_id: "PER-2024-A"

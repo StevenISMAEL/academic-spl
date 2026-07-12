@@ -37,6 +37,27 @@ class EnrollmentRepository:
         rows = self._db.query(MatriculaDB).all()
         return [self._to_dict(row) for row in rows]
 
+    def count_active_enrollments(self, persona_id: str) -> int:
+        """Cuenta las matrículas activas (estado 'inscrito') de una persona.
+
+        Usado por CA-05 EnrollmentLimitChecker para verificar si el estudiante
+        puede inscribirse en más cursos según el límite del YAML del producto.
+
+        Args:
+            persona_id: ID de la persona a consultar.
+
+        Returns:
+            Número de matrículas con estado 'inscrito' para esa persona.
+        """
+        return (
+            self._db.query(MatriculaDB)
+            .filter(
+                MatriculaDB.persona_id == persona_id,
+                MatriculaDB.estado == "inscrito",
+            )
+            .count()
+        )
+
     def get_enrollment(self, enrollment_id: str) -> Optional[Dict[str, Any]]:
         """Busca una matrícula por ID. Devuelve None si no existe."""
         row = (

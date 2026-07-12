@@ -1,0 +1,57 @@
+# products/instituto-tecnico/product_config.yaml
+#
+# Producto derivado: Instituto Tecnico Nocturno
+# Derivado de la Linea de Productos Academica sin modificar el Core.
+
+metadata:
+  product_name: "Instituto Tecnico Nocturno"
+  product_type: "tecnico"
+
+features:
+  attendance: false     # Clases nocturnas — no se controla asistencia diaria
+  grading: true         # Calificaciones numericas 0-10
+  enrollment: true      # Matricula semestral
+  schedule: true        # Instituto tecnico maneja horarios por modulo
+  reports: true         # Reportes para el SETEC (entidad reguladora)
+  certificates: false   # Los certificados los emite el SETEC directamente
+
+academic_settings:
+  evaluation_scale: "numeric"       # Notas como numeros: 8.5, 9.0, etc.
+  periods_per_year: 2               # Semestre A y Semestre B
+  passing_grade: 7.0                # Mismo umbral que colegio
+  attendance_min_percentage: 70.0   # Modalidad nocturna: umbral mas flexible
+  max_enrollments_per_period: 5     # Maximo 5 modulos por semestre
+  grading_max_value: 10             # Escala sobre 10
+
+database:
+  path: "products/instituto-tecnico/instituto_tecnico.db"
+
+seed_data:
+  personas:
+    - id: "T-001"
+      nombres: "Roberto"
+      apellidos: "Vega Mora"
+      documento_identidad: "1001"
+    - id: "T-002"
+      nombres: "Carmen"
+      apellidos: "Flores Ruiz"
+      documento_identidad: "1002"
+  periodos:
+    - id: "SEM-2024-A"
+      nombre: "Semestre A 2024"
+      fecha_inicio: "2024-01-08"
+      fecha_fin: "2024-06-28"
+    - id: "SEM-2024-B"
+      nombre: "Semestre B 2024"
+      fecha_inicio: "2024-07-08"
+      fecha_fin: "2024-12-20"
+  cursos:
+    - id: "T-PROG"
+      nombre: "Programacion"
+      periodo_id: "SEM-2024-A"
+    - id: "T-REDES"
+      nombre: "Redes y Comunicaciones"
+      periodo_id: "SEM-2024-A"
+    - id: "T-BD"
+      nombre: "Bases de Datos"
+      periodo_id: "SEM-2024-B"

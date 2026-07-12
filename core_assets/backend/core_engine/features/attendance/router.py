@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Dict, Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
@@ -36,7 +36,10 @@ class AttendanceCreate(BaseModel):
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @router.get("/", summary="Listar registros de asistencia con estadisticas")
-def list_attendance_records(db: Session = Depends(get_db)) -> Dict[str, Any]:
+def list_attendance_records(
+    request: Request,
+    db: Session = Depends(get_db),
+) -> Dict[str, Any]:
     """Devuelve los registros de asistencia de la BD del producto activo.
 
     Incluye un resumen global calculado por el Core Asset AttendanceCalculator
@@ -46,9 +49,13 @@ def list_attendance_records(db: Session = Depends(get_db)) -> Dict[str, Any]:
     repo = AttendanceRepository(db)
     records = repo.list_records()
 
-    # CA-03: AttendanceCalculator calcula estadisticas del dominio academico
-    resumen_global = AttendanceCalculator.summarize(records)
-    resumen_por_persona = AttendanceCalculator.summarize_by_persona(records)
+    flags = request.app.state.feature_flags
+    # CA-03: leer umbrales desde el YAML del producto (ya no hardcodeados)
+    t_approved = flags.get_setting("academic_settings", "attendance_min_percentage", default=80.0)
+    t_at_risk  = max(t_approved - 10, 0.0)  # Umbral de riesgo = umbral de aprobación - 10%
+
+    resumen_global = AttendanceCalculator.summarize(records, t_approved, t_at_risk)
+    resumen_por_persona = AttendanceCalculator.summarize_by_persona(records, t_approved, t_at_risk)
 
     return {
         "feature": "attendance",

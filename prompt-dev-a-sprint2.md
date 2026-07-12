@@ -1,6 +1,6 @@
-# PROMPT DEV A — Sprint 2 (Backend + Persistencia) — ACTUALIZADO
-# Estado: COMPLETADO. Este documento refleja lo que ya fue implementado.
-# Úsalo como referencia o para continuar en un chat nuevo si necesitas ajustes.
+# PROMPT DEV A — Sprint 2 (Backend + Persistencia)
+# Estado: COMPLETADO. Documento de referencia para el equipo.
+# Todo el trabajo de Dev A está terminado y verificado.
 
 Actúa como un Arquitecto de Software experto en Python (FastAPI),
 patrones de diseño y Líneas de Productos de Software (SPLE).
@@ -13,8 +13,8 @@ Somos un equipo de 3 personas en un proyecto universitario. Estamos
 construyendo una **Línea de Productos de Software (SPL)** para el
 dominio académico. Construimos **Core Assets** reutilizables que
 permiten derivar múltiples productos (Colegio Básico, Universidad
-Compleja) cambiando solo un archivo de configuración YAML, sin tocar
-el código del Core.
+Compleja, Instituto Técnico Nocturno) cambiando solo un archivo de
+configuración YAML, sin tocar el código del Core.
 
 **Regla de oro que nunca se puede violar:**
 `core_assets/` no puede contener el nombre de ningún producto, ni
@@ -31,184 +31,249 @@ diferencia de comportamiento entre productos viene del `product_config.yaml`.
 
 ---
 
-## Lo que Dev A YA construyó y está verificado (Sprint 2 COMPLETADO)
-
-### Estructura completa actual del proyecto
+## Estructura completa del proyecto (estado actual verificado)
 
 ```
 academic-spl/
 ├── run_app.py
-├── requirements.txt                         ← sqlalchemy==2.0.30 agregado
+├── requirements.txt                         ← sqlalchemy==2.0.30, pydantic, fastapi, uvicorn
 ├── core_assets/backend/core_engine/
 │   ├── config/
-│   │   ├── feature_flags.py                 ← COR-02: motor de variabilidad
-│   │   ├── schema_loader.py                 ← COR-11: valida configs
-│   │   └── config_schema.json               ← incluye secciones database y seed_data
+│   │   ├── feature_flags.py                 ← Motor de variabilidad (lee YAML)
+│   │   ├── schema_loader.py                 ← Valida configs contra JSON Schema
+│   │   └── config_schema.json               ← Contrato formal (database, seed_data, academic_settings completo)
 │   ├── domain/
 │   │   ├── entities.py                      ← Pydantic: Persona, Curso, Periodo, Evaluacion
 │   │   ├── validators/
-│   │   │   └── cedula_validator.py          ← CA-01: Algoritmo Módulo 10 Registro Civil Ecuador
+│   │   │   └── cedula_validator.py          ← CA-01: Módulo 10 Registro Civil Ecuador
 │   │   └── calculators/
-│   │       ├── grade_scale_converter.py     ← CA-02: convierte notas a escala literal/numeric
-│   │       └── attendance_calculator.py     ← CA-03: estadísticas de asistencia (umbrales 80/70%)
+│   │       ├── grade_scale_converter.py     ← CA-02: literal/numeric según evaluation_scale del YAML
+│   │       ├── attendance_calculator.py     ← CA-03: umbrales desde attendance_min_percentage del YAML
+│   │       ├── grade_passing_checker.py     ← CA-04: aprobado/reprobado según passing_grade del YAML
+│   │       └── enrollment_limit_checker.py  ← CA-05: límite de materias según max_enrollments_per_period del YAML
 │   ├── features/
-│   │   ├── personas/router.py               ← Core Service SIEMPRE activo (COR-17)
-│   │   ├── cursos/router.py                 ← Core Service SIEMPRE activo (COR-18)
-│   │   ├── periodos/router.py               ← Core Service SIEMPRE activo (COR-19)
-│   │   ├── attendance/router.py             ← Optional Feature, usa AttendanceCalculator
-│   │   ├── grading/router.py                ← Optional Feature, usa GradeScaleConverter
-│   │   └── enrollment/router.py             ← Optional Feature
+│   │   ├── personas/router.py               ← Core Service siempre activo (usa CA-01)
+│   │   ├── cursos/router.py                 ← Core Service siempre activo
+│   │   ├── periodos/router.py               ← Core Service siempre activo
+│   │   ├── attendance/router.py             ← Optional Feature (usa CA-03)
+│   │   ├── grading/router.py                ← Optional Feature (usa CA-02 + CA-04)
+│   │   ├── enrollment/router.py             ← Optional Feature (usa CA-05)
+│   │   ├── schedule/router.py               ← Optional Feature (stub, Sprint 3)
+│   │   ├── reports/router.py                ← Optional Feature (stub, Sprint 3)
+│   │   └── certificates/router.py           ← Optional Feature (stub, Sprint 3)
 │   ├── persistence/
-│   │   ├── connection_resolver.py           ← COR-12: BD por producto vía YAML
-│   │   ├── models.py                        ← COR-13: ORM SQLAlchemy (6 tablas)
-│   │   ├── migrate.py                       ← COR-13: CLI idempotente de migraciones
-│   │   ├── seeder.py                        ← COR-16: siembra desde seed_data del YAML
-│   │   ├── persona_repository.py            ← COR-17: usa CedulaValidator
-│   │   ├── curso_repository.py              ← COR-18
-│   │   ├── periodo_repository.py            ← COR-19
-│   │   ├── grade_repository.py              ← COR-14
-│   │   ├── attendance_repository.py         ← COR-14
-│   │   └── enrollment_repository.py        ← COR-14
-│   └── main_factory.py                      ← COR-20: Core Services siempre + Features por YAML
+│   │   ├── connection_resolver.py           ← BD por producto desde database.path del YAML
+│   │   ├── models.py                        ← ORM: PersonaDB, CursoDB, PeriodoDB, EvaluacionDB, AsistenciaDB, MatriculaDB
+│   │   ├── migrate.py                       ← CLI idempotente de migraciones
+│   │   ├── seeder.py                        ← Siembra desde seed_data del YAML
+│   │   ├── persona_repository.py            ← CRUD + CedulaValidator (CA-01)
+│   │   ├── curso_repository.py              ← CRUD + filtro ?periodo_id=
+│   │   ├── periodo_repository.py            ← CRUD
+│   │   ├── grade_repository.py              ← CRUD calificaciones
+│   │   ├── attendance_repository.py         ← CRUD asistencias
+│   │   └── enrollment_repository.py        ← CRUD matrículas + count_active_enrollments()
+│   └── main_factory.py                      ← Application Factory: Core Services siempre + Optional Features por YAML
 ├── products/
 │   ├── colegio-basico/
-│   │   ├── product_config.yaml              ← incluye database.path y seed_data
-│   │   └── colegio_basico.db               ← BD SQLite generada (no versionar)
-│   └── universidad-compleja/
-│       ├── product_config.yaml              ← incluye database.path
-│       └── universidad_compleja.db         ← BD SQLite generada (no versionar)
+│   │   ├── product_config.yaml
+│   │   └── colegio_basico.db
+│   ├── universidad-compleja/
+│   │   ├── product_config.yaml
+│   │   └── universidad_compleja.db
+│   └── instituto-tecnico/
+│       ├── product_config.yaml
+│       └── instituto_tecnico.db (se crea al migrar)
 └── docs/feature_model.md
 ```
 
-### Arquitectura: Core Services vs Optional Features
+---
 
-Esta es la distinción clave que faltaba en el Sprint 1:
+## Los 5 Core Assets de lógica de negocio
 
-**Core Services** — montados SIEMPRE en `main_factory.py`, sin flag:
+### CA-01 — CedulaValidator
+Algoritmo Módulo 10 del Registro Civil Ecuador. Usado en `PersonaRepository`.
 ```python
-CORE_SERVICES = [periodos_router, cursos_router, personas_router]
-for router in CORE_SERVICES:
-    app.include_router(router)
+CedulaValidator.validate("1713175071")        # → True
+CedulaValidator.validate("1234567890")        # → False
+CedulaValidator.validate_or_raise("999...")   # → ValueError
 ```
 
-**Optional Features** — montados solo si el YAML lo declara:
+### CA-02 — GradeScaleConverter
+Convierte notas a la escala del YAML (`evaluation_scale`). Mismo código, distinto resultado.
 ```python
-FEATURE_REGISTRY = {"attendance": ..., "grading": ..., "enrollment": ...}
-for name, router in FEATURE_REGISTRY.items():
-    if flags.is_active(name):
-        app.include_router(router)
+# Colegio (literal):       → "Muy Bueno"
+# Universidad (numeric):   → 8.5
+GradeScaleConverter.to_display(8.5, scale)
+
+# Tabla de conversión literal:
+# 9.0 - 10.0 → "Sobresaliente"
+# 7.0 -  8.9 → "Muy Bueno"
+# 5.0 -  6.9 → "Bueno"
+# 3.0 -  4.9 → "Regular"
+# 0.0 -  2.9 → "Insuficiente"
 ```
 
-### Core Assets de lógica de negocio (lo que faltaba en Sprint 1)
-
-**CA-01 — CedulaValidator**
-Algoritmo Módulo 10 del Registro Civil Ecuador. Se usa en
-`PersonaRepository.create_persona()` — ningún producto puede crear
-una persona con cédula inválida, independientemente de quién llame al repositorio.
+### CA-03 — AttendanceCalculator
+Calcula estadísticas de asistencia. Los umbrales vienen del YAML (`attendance_min_percentage`).
 ```python
-CedulaValidator.validate("1713175071")     # → True
-CedulaValidator.validate("1234567890")     # → False
-CedulaValidator.validate_or_raise("999")   # → ValueError con mensaje claro
+# Colegio (umbral 80%):       77% → "EN_RIESGO"
+# Universidad (umbral 75%):   77% → "APROBADO"
+# Técnico (umbral 70%):       72% → "APROBADO"
+AttendanceCalculator.status(77.0, threshold_approved=80.0)   # → "EN_RIESGO"
+AttendanceCalculator.summarize(records, threshold_approved, threshold_at_risk)
+AttendanceCalculator.summarize_by_persona(records, threshold_approved, threshold_at_risk)
 ```
 
-**CA-02 — GradeScaleConverter**
-Convierte notas numéricas a escala de presentación según el YAML del producto.
-El MISMO router de grading devuelve `"Muy Bueno"` para el Colegio y `8.5`
-para la Universidad — sin `if producto == "colegio"`.
+### CA-04 — GradePassingChecker
+Determina si una nota aprueba según `passing_grade` del YAML.
 ```python
-GradeScaleConverter.to_display(8.5, "literal")   # → "Muy Bueno"
-GradeScaleConverter.to_display(8.5, "numeric")   # → 8.5
-GradeScaleConverter.to_display(9.5, "literal")   # → "Sobresaliente"
-GradeScaleConverter.to_display(4.0, "literal")   # → "Regular"
+# El mismo 6.5 tiene distinto significado:
+GradePassingChecker.status(6.5, passing_grade=6.0)  # → "APROBADO"  (Universidad)
+GradePassingChecker.status(6.5, passing_grade=7.0)  # → "REPROBADO" (Colegio)
+GradePassingChecker.annotate_grades_list(grades, passing_grade)  # agrega aprueba + estado_aprobacion
 ```
 
-**CA-03 — AttendanceCalculator**
-Reglas de negocio del dominio académico ecuatoriano. Se usa en
-`attendance/router.py` — el `GET /attendance/` devuelve estadísticas reales.
+### CA-05 — EnrollmentLimitChecker
+Verifica límite de materias por estudiante según `max_enrollments_per_period` del YAML.
 ```python
-AttendanceCalculator.percentage(18, 20)    # → 90.0
-AttendanceCalculator.status(90.0)          # → "APROBADO"
-AttendanceCalculator.status(75.0)          # → "EN_RIESGO"
-AttendanceCalculator.status(65.0)          # → "REPROBADO_FALTA"
-AttendanceCalculator.summarize(records)    # → {total, presentes, %, estado}
-AttendanceCalculator.summarize_by_persona(records) # → lista ordenada por riesgo
+EnrollmentLimitChecker.can_enroll(5, max_enrollments=6)  # → True  (Universidad)
+EnrollmentLimitChecker.can_enroll(5, max_enrollments=5)  # → False (Técnico, ya llegó al límite)
+EnrollmentLimitChecker.validate_or_raise(5, 5, "P-001")  # → ValueError
+EnrollmentLimitChecker.slots_remaining(3, 8)             # → 5 (Colegio)
 ```
 
-### Endpoints disponibles para Dev B y Dev C
+---
 
-| Método | Endpoint | Disponible | Novedades |
-|---|---|---|---|
-| GET | `/` | Siempre | Muestra `core_services` + `active_optional_features` separados |
-| GET/POST | `/periodos/` | Siempre | Core Service |
-| GET/PUT/DELETE | `/periodos/{id}` | Siempre | |
-| GET/POST | `/cursos/` | Siempre | Filtro ?periodo_id= en GET |
-| GET/PUT/DELETE | `/cursos/{id}` | Siempre | |
-| GET/POST | `/personas/` | Siempre | Valida cédula ecuatoriana |
-| GET/PUT/DELETE | `/personas/{id}` | Siempre | |
-| GET | `/personas/por-documento/{doc}` | Siempre | |
-| GET/POST/DELETE | `/grading/` | Si grading:true | Devuelve `valor_display` con escala del producto |
-| GET/POST/DELETE | `/attendance/` | Si attendance:true | Devuelve estadísticas + resumen por persona |
-| GET/POST/DELETE/PATCH | `/enrollment/` | Si enrollment:true | PATCH /enrollment/{id}/status |
+## academic_settings — Variabilidad paramétrica completa
 
-### Comandos de referencia
+| Parámetro | Colegio | Universidad | Técnico | Core Asset que lo usa |
+|---|---|---|---|---|
+| `evaluation_scale` | `literal` | `numeric` | `numeric` | CA-02 |
+| `periods_per_year` | 1 | 2 | 2 | informativo |
+| `passing_grade` | 7.0 | 6.0 | 7.0 | CA-04 |
+| `attendance_min_percentage` | 80.0 | 75.0 | 70.0 | CA-03 |
+| `max_enrollments_per_period` | 8 | 6 | 5 | CA-05 |
+| `grading_max_value` | 10 | 10 | 10 | informativo |
+
+---
+
+## Optional Features — Variabilidad booleana completa
+
+| Feature | Colegio | Universidad | Técnico | Descripción |
+|---|---|---|---|---|
+| `attendance` | ✅ | ❌ | ❌ | Asistencia diaria |
+| `grading` | ✅ | ✅ | ✅ | Calificaciones |
+| `enrollment` | ✅ | ✅ | ✅ | Matrículas/Inscripciones |
+| `schedule` | ❌ | ✅ | ✅ | Horarios de clases |
+| `reports` | ❌ | ✅ | ✅ | Reportes académicos |
+| `certificates` | ❌ | ✅ | ❌ | Certificados de aprobación |
+
+---
+
+## Todos los endpoints disponibles
+
+### Core Services (siempre disponibles en todos los productos)
+```
+GET    /                                   → diagnóstico: core_services + active_optional_features + academic_settings
+GET    /periodos/                           → listar períodos
+POST   /periodos/                           → crear período {"nombre", "fecha_inicio", "fecha_fin"}
+GET    /periodos/{id}                       → obtener período
+PUT    /periodos/{id}                       → actualizar período
+DELETE /periodos/{id}                       → eliminar período
+
+GET    /cursos/                             → listar cursos (acepta ?periodo_id= para filtrar)
+POST   /cursos/                             → crear curso {"nombre", "periodo_id"}
+GET    /cursos/{id}                         → obtener curso
+PUT    /cursos/{id}                         → actualizar curso
+DELETE /cursos/{id}                         → eliminar curso
+
+GET    /personas/                           → listar personas
+POST   /personas/                           → crear {"nombres", "apellidos", "documento_identidad"}
+                                               ← CA-01 valida la cédula, retorna 409 si inválida
+GET    /personas/{id}                       → obtener persona
+GET    /personas/por-documento/{doc}        → buscar por cédula ecuatoriana
+PUT    /personas/{id}                       → actualizar (CA-01 valida si cambia documento)
+DELETE /personas/{id}                       → eliminar persona
+```
+
+### Optional Features (según product_config.yaml)
+```
+GET    /grading/           → lista notas con valor_display (CA-02), aprueba y estado_aprobacion (CA-04)
+POST   /grading/           → {"curso_id", "persona_id", "valor" (0-10), "observacion"}
+GET    /grading/{id}       → nota individual con valor_display + aprueba + estado_aprobacion
+DELETE /grading/{id}       → eliminar nota
+
+GET    /attendance/        → lista + estadisticas (CA-03): porcentaje, estado, umbral_aprobado
+POST   /attendance/        → {"persona_id", "curso_id", "fecha", "presente", "justificacion"}
+GET    /attendance/{id}    → registro individual
+DELETE /attendance/{id}    → eliminar registro
+
+GET    /enrollment/        → listar matrículas
+POST   /enrollment/        → {"persona_id", "curso_id"} ← CA-05 verifica límite antes de insertar
+GET    /enrollment/{id}    → matrícula individual
+PATCH  /enrollment/{id}/status → {"estado": "inscrito|retirado|aprobado|reprobado"}
+DELETE /enrollment/{id}    → eliminar matrícula
+
+GET    /schedule/          → listar horarios (stub, implementar Sprint 3)
+GET    /schedule/{curso_id}→ horario de un curso
+GET    /reports/           → reportes disponibles
+GET    /reports/rendimiento/{persona_id} → reporte por estudiante
+GET    /certificates/      → listar certificados
+POST   /certificates/{persona_id}/generate → generar certificado (stub Sprint 3)
+```
+
+---
+
+## Comandos de referencia (todos verificados)
 
 ```powershell
-# Setup (una vez por terminal)
+# Setup (en cada terminal nueva)
 $env:PYTHONPATH = "."
 
-# Migrar BD (idempotente)
+# Migrar BDs
 .venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/colegio-basico/colegio_basico.db
 .venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/universidad-compleja/universidad_compleja.db
+.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/migrate.py products/instituto-tecnico/instituto_tecnico.db
 
 # Sembrar datos
 .venv\Scripts\python.exe core_assets/backend/core_engine/persistence/seeder.py products/colegio-basico/product_config.yaml
+.venv\Scripts\python.exe core_assets/backend/core_engine/persistence/seeder.py products/instituto-tecnico/product_config.yaml
 
-# Levantar Colegio Básico (puerto 8001)
+# Levantar productos (3 terminales)
 $env:PRODUCT_CONFIG_PATH = "products/colegio-basico/product_config.yaml"
 .venv\Scripts\python.exe -m uvicorn run_app:app --port 8001 --reload
 
-# Levantar Universidad Compleja (puerto 8002)
 $env:PRODUCT_CONFIG_PATH = "products/universidad-compleja/product_config.yaml"
 .venv\Scripts\python.exe -m uvicorn run_app:app --port 8002 --reload
 
+$env:PRODUCT_CONFIG_PATH = "products/instituto-tecnico/product_config.yaml"
+.venv\Scripts\python.exe -m uvicorn run_app:app --port 8003 --reload
+
 # Swagger UI
-# Colegio   → http://localhost:8001/docs
-# Universidad → http://localhost:8002/docs
-```
-
-### Demo SPLE verificada en vivo
-
-```powershell
-# 1. Misma ruta, comportamiento diferente según producto:
-# Colegio:       GET /attendance/ → 200 OK
-# Universidad:   GET /attendance/ → 404 Not Found
-
-# 2. El evaluation_scale del YAML afecta el comportamiento real:
-# Colegio (literal):      GET /grading/ → {"valor": 8.5, "valor_display": "Muy Bueno"}
-# Universidad (numeric):  GET /grading/ → {"valor": 8.5, "valor_display": 8.5}
-# MISMO código. DISTINTO resultado. SIN if-else sobre el nombre del producto.
-
-# 3. BDs completamente separadas:
-# Una nota creada en el puerto 8001 NO aparece en el 8002.
+# Colegio     → http://localhost:8001/docs  (10 rutas)
+# Universidad → http://localhost:8002/docs  (18 rutas, incluye schedule/reports/certificates)
+# Técnico     → http://localhost:8003/docs  (14 rutas, incluye schedule/reports pero no certificates)
 ```
 
 ---
 
-## Qué falta para Sprint 3 (DevOps)
+## Demo SPLE verificada (las pruebas más importantes)
 
-Dev A no tiene trabajo pendiente para el backend. Las tareas de Sprint 3 son:
-- `Dockerfile` para el backend (Lee `PRODUCT_CONFIG_PATH` desde variable de entorno)
-- `docker-compose.yml` para levantar ambos productos en paralelo
-- GitHub Actions: lint + tests automatizados (ver trabajo de Dev C)
+```
+1. VARIABILIDAD BOOLEANA: attendance da 200 en colegio, 404 en universidad
+2. VARIABILIDAD PARAMÉTRICA CA-02: nota 8.5 → "Muy Bueno" en colegio, 8.5 en universidad
+3. VARIABILIDAD PARAMÉTRICA CA-04: nota 6.5 → APROBADO en universidad (6.0), REPROBADO en colegio (7.0)
+4. VARIABILIDAD PARAMÉTRICA CA-03: 77% asistencia → EN_RIESGO en colegio (80%), APROBADO en universidad (75%)
+5. VARIABILIDAD PARAMÉTRICA CA-05: inscripción 6 rechazada en técnico (max=5), aceptada en colegio (max=8)
+6. BDs separadas: nota en 8001 NO aparece en 8002
+7. FEATURES NUEVOS: schedule/reports/certificates existen en Swagger de universidad, NO en colegio
+```
 
 ---
 
-## Coordinación con Dev C (Tests)
+## Qué hace Dev A para Sprint 3
 
-Dev C necesita los siguientes fixtures de tu código:
-- `GradeRepository`, `AttendanceRepository`, `EnrollmentRepository` (para tests de persistencia)
-- `PersonaRepository` con `CedulaValidator` integrado (test de validación)
-- `GradeScaleConverter` (test de conversión literal/numeric)
-- `AttendanceCalculator` (test de umbrales de riesgo)
-
-Todos están en `core_assets/backend/core_engine/`. Ninguno requiere levantar el servidor para ser testeado unitariamente.
+Dev A no tiene trabajo pendiente de backend. Para Sprint 3:
+- `Dockerfile` para el backend (lee `PRODUCT_CONFIG_PATH` desde variable de entorno)
+- `docker-compose.yml` para los 3 productos en paralelo
+- Colaborar con Dev C en los tests de los nuevos Core Assets (CA-04 y CA-05)

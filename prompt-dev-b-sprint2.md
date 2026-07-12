@@ -1,9 +1,10 @@
 # PROMPT DEV B — Sprint 2 (Frontend Laravel)
 # Copia y pega esto completo como primer mensaje en un chat nuevo
 
-Actúa como un Arquitecto de Software experto en PHP (Laravel), diseño
-de componentes Blade reutilizables, y Líneas de Productos de Software
-(SPLE). También debes conocer cómo consumir APIs REST desde Laravel.
+Actúa como un Arquitecto de Software experto en PHP (Laravel 11),
+diseño de componentes Blade reutilizables y Líneas de Productos de
+Software (SPLE). También debes conocer cómo consumir APIs REST desde
+Laravel con el cliente HTTP de Laravel.
 
 ---
 
@@ -11,13 +12,13 @@ de componentes Blade reutilizables, y Líneas de Productos de Software
 
 Somos un equipo de 3 personas en un proyecto universitario. Estamos
 construyendo una **Línea de Productos de Software (SPL)** para el
-dominio académico. Esto significa que NO construimos una app fija —
-construimos **Core Assets** reutilizables que permiten derivar múltiples
-productos (Colegio Básico, Universidad Compleja) cambiando solo un
-archivo de configuración YAML en el backend, sin tocar el código del Core.
+dominio académico. Construimos **Core Assets** reutilizables que
+permiten derivar múltiples productos (Colegio Básico, Universidad
+Compleja, Instituto Técnico Nocturno) cambiando solo un archivo de
+configuración YAML en el backend, sin tocar el código del Core.
 
 **Regla de oro que nunca se puede violar:**
-`core_assets/` no puede contener el nombre de ningún producto, ni
+`core_assets/` no puede contener el nombre de ningún producto ni
 lógica condicional sobre productos. Toda diferencia de comportamiento
 entre productos viene de la configuración.
 
@@ -25,94 +26,114 @@ entre productos viene de la configuración.
 
 ## Stack tecnológico
 
-- Backend: Python 3.12 + FastAPI (Dev A lo maneja — ya completado)
+- Backend: Python 3.12 + FastAPI (Dev A lo maneja — COMPLETADO)
 - Frontend: PHP 8.3 + Laravel 11
-- La comunicación entre Laravel y FastAPI es HTTP REST
+- Comunicación: HTTP REST
 - DevOps: Docker + GitHub Actions (Sprint 3)
 
 ---
 
-## Lo que YA está construido (Backend Sprint 2 — Dev A COMPLETADO)
+## Lo que YA está construido — Backend Sprint 2 COMPLETADO
 
-El backend está 100% funcional. Dev B puede trabajar sin bloqueos.
+### Productos disponibles
 
-### Endpoints disponibles
+| Puerto | Producto | academic_settings |
+|---|---|---|
+| 8001 | Colegio Básico | scale=literal, passing=7.0, attendance_min=80%, max_enroll=8 |
+| 8002 | Universidad Compleja | scale=numeric, passing=6.0, attendance_min=75%, max_enroll=6 |
+| 8003 | Instituto Técnico | scale=numeric, passing=7.0, attendance_min=70%, max_enroll=5 |
 
-El backend corre en `http://127.0.0.1:8001/` (Colegio) y `8002/` (Universidad).
+### Los 5 Core Assets de lógica de negocio
 
-**Core Services — siempre disponibles en ambos productos:**
-```
-GET    /                              → info del producto, core_services y active_optional_features
-GET    /periodos/                     → listar períodos académicos
-POST   /periodos/                     → crear período {"nombre", "fecha_inicio", "fecha_fin"}
-GET    /periodos/{id}                 → obtener período
-PUT    /periodos/{id}                 → actualizar período
-DELETE /periodos/{id}                 → eliminar período
+Estos assets ya están implementados en el backend y afectan las respuestas:
 
-GET    /cursos/                       → listar cursos (acepta ?periodo_id= para filtrar)
-POST   /cursos/                       → crear curso {"nombre", "periodo_id"}
-GET    /cursos/{id}                   → obtener curso
-PUT    /cursos/{id}                   → actualizar curso
-DELETE /cursos/{id}                   → eliminar curso
+**CA-01 CedulaValidator** — `POST /personas/` valida la cédula antes de guardar.
+- Cédula inválida → HTTP 409 con `{"detail": "El documento '...' no es válido..."}`
 
-GET    /personas/                     → listar personas
-POST   /personas/                     → crear persona {"nombres", "apellidos", "documento_identidad"}
-GET    /personas/{id}                 → obtener persona
-GET    /personas/por-documento/{doc}  → buscar por cédula
-PUT    /personas/{id}                 → actualizar persona
-DELETE /personas/{id}                 → eliminar persona
-```
+**CA-02 GradeScaleConverter** — `GET /grading/` tiene campo extra `valor_display`:
+- Colegio (literal): `"valor_display": "Muy Bueno"` para nota 8.5
+- Universidad (numeric): `"valor_display": 8.5` para nota 8.5
 
-**Optional Features — dependen del product_config.yaml:**
-```
-GET    /grading/                      → lista de notas con "valor_display" (escala del producto)
-POST   /grading/                      → crear nota {"curso_id", "persona_id", "valor", "observacion"}
-GET    /grading/{id}                  → obtener nota por ID
-DELETE /grading/{id}                  → eliminar nota
-
-GET    /attendance/                   → registros + estadísticas (porcentaje, estado APROBADO/EN_RIESGO)
-POST   /attendance/                   → registrar {"persona_id", "curso_id", "fecha", "presente", "justificacion"}
-GET    /attendance/{id}               → obtener registro
-DELETE /attendance/{id}               → eliminar registro
-
-GET    /enrollment/                   → listar matrículas
-POST   /enrollment/                   → crear matrícula {"persona_id", "curso_id"}
-GET    /enrollment/{id}               → obtener matrícula
-PATCH  /enrollment/{id}/status        → cambiar estado {"estado": "inscrito|aprobado|reprobado"}
-DELETE /enrollment/{id}               → eliminar matrícula
-```
-
-### Comportamiento diferenciado por producto (la demo SPLE)
-
-El endpoint `/` responde así:
-
-**Colegio Básico (puerto 8001):**
+**CA-03 AttendanceCalculator** — `GET /attendance/` tiene campo `estadisticas`:
 ```json
 {
-  "core_services": ["periodos", "cursos", "personas"],
-  "active_optional_features": ["attendance", "grading", "enrollment"],
-  "academic_settings": {"evaluation_scale": "literal"}
+  "estadisticas": {
+    "total_registros": 10,
+    "total_presentes": 8,
+    "total_ausentes": 2,
+    "porcentaje_asistencia": 80.0,
+    "estado": "APROBADO",
+    "umbral_aprobado": 80.0,
+    "umbral_riesgo": 70.0
+  },
+  "resumen_por_persona": [...]
 }
 ```
 
-**Universidad Compleja (puerto 8002):**
+**CA-04 GradePassingChecker** — cada nota en `GET /grading/` tiene:
 ```json
 {
-  "core_services": ["periodos", "cursos", "personas"],
-  "active_optional_features": ["grading", "enrollment"],
-  "academic_settings": {"evaluation_scale": "numeric"}
+  "valor": 6.5,
+  "valor_display": "Bueno",
+  "aprueba": false,
+  "estado_aprobacion": "REPROBADO"
 }
 ```
+Ese mismo 6.5 en universidad: `"aprueba": true`, `"estado_aprobacion": "APROBADO"`.
 
-`GET /attendance/` devuelve 200 en colegio y **404** en universidad.
-`GET /grading/` devuelve `"valor_display": "Muy Bueno"` en colegio y `"valor_display": 8.5` en universidad.
+**CA-05 EnrollmentLimitChecker** — `POST /enrollment/` puede devolver HTTP 409:
+```json
+{"detail": "El estudiante 'P-001' ya tiene 5 materia(s) inscrita(s). El limite configurado es 5."}
+```
 
-### Datos de prueba sembrados en el Colegio
+### Todos los endpoints disponibles
 
-El backend ya tiene datos de ejemplo en `colegio_basico.db`:
+**Core Services (SIEMPRE activos, todos los productos):**
+```
+GET    /                                  → diagnóstico: core_services, active_optional_features, academic_settings
+GET/POST/PUT/DELETE /periodos/{id}        → gestión de períodos
+GET/POST/PUT/DELETE /cursos/{id}          → gestión de cursos (acepta ?periodo_id=)
+GET/POST/PUT/DELETE /personas/{id}        → gestión de personas (CA-01 valida cédula)
+GET                 /personas/por-documento/{doc} → buscar por cédula
+```
+
+**Optional Features (dependen del YAML del producto):**
+```
+GET    /grading/            → lista notas con valor_display (CA-02) + aprueba/estado_aprobacion (CA-04)
+POST   /grading/            → {"curso_id", "persona_id", "valor" (0-10), "observacion"}
+GET    /grading/{id}        → nota individual
+DELETE /grading/{id}        → eliminar nota
+
+GET    /attendance/         → registros + estadisticas completas (CA-03) + resumen_por_persona
+POST   /attendance/         → {"persona_id", "curso_id", "fecha", "presente", "justificacion"}
+DELETE /attendance/{id}     → eliminar registro
+
+GET    /enrollment/         → listar matrículas
+POST   /enrollment/         → {"persona_id", "curso_id"} ← puede dar 409 si límite superado (CA-05)
+PATCH  /enrollment/{id}/status → {"estado": "inscrito|retirado|aprobado|reprobado"}
+DELETE /enrollment/{id}     → eliminar matrícula
+
+GET    /schedule/           → listar horarios
+GET    /schedule/{curso_id} → horario de un curso (stub, Sprint 3)
+
+GET    /reports/            → reportes disponibles
+GET    /reports/rendimiento/{persona_id} → reporte por estudiante (stub, Sprint 3)
+
+GET    /certificates/       → listar certificados
+POST   /certificates/{persona_id}/generate → generar certificado (stub, Sprint 3)
+```
+
+### Datos sembrados en Colegio (puerto 8001)
+
 - Personas: P-001 (Ana García), P-002 (Luis Martínez), P-003 (María Rodríguez)
-- Periodo: PER-2024-A (Año Escolar 2024)
+- Período: PER-2024-A (Año Escolar 2024)
 - Cursos: C-MAT (Matemáticas), C-ESP (Español)
+
+### Datos sembrados en Técnico (puerto 8003)
+
+- Personas: T-001 (Roberto Vega), T-002 (Carmen Flores)
+- Períodos: SEM-2024-A, SEM-2024-B
+- Cursos: T-PROG (Programación), T-REDES (Redes), T-BD (Bases de Datos)
 
 ---
 
@@ -122,20 +143,20 @@ El backend ya tiene datos de ejemplo en `colegio_basico.db`:
 core_assets/frontend/laravel-shell/
 ├── app/
 │   ├── Core/Services/
-│   │   └── FeatureGate.php      ← consulta al backend qué features están activos
+│   │   └── FeatureGate.php        ← consulta al backend qué features están activos
 │   ├── Providers/
 │   │   └── FeatureGateServiceProvider.php  ← registra directiva @feature en Blade
 │   ├── Http/Controllers/Auth/
-│   │   └── LoginController.php  ← auth básica
+│   │   └── LoginController.php    ← auth básica
 │   └── Modules/
-│       └── AttendanceModule/    ← módulo de ejemplo (patrón a replicar)
-│           ├── Http/Controllers/AttendanceController.php  ← datos HARDCODEADOS aún
+│       └── AttendanceModule/
+│           ├── Http/Controllers/AttendanceController.php  ← datos HARDCODEADOS (a reemplazar)
 │           ├── resources/views/index.blade.php
 │           └── routes.php
 ├── config/
-│   └── core_engine.php          ← URL del backend (desde .env)
+│   └── core_engine.php            ← URL del backend (desde .env)
 ├── resources/views/
-│   └── dashboard.blade.php      ← vista genérica con @feature()
+│   └── dashboard.blade.php        ← vista genérica con @feature()
 └── routes/web.php
 ```
 
@@ -146,23 +167,22 @@ class FeatureGate {
     public static function isActive(string $featureName): bool {
         return in_array($featureName, self::activeFeatures(), true);
     }
+    public static function activeFeatures(): array {
+        return self::productInfo()['active_optional_features'] ?? [];
+    }
     public static function productInfo(): array {
         return Cache::remember('core_engine_info', 30, function () {
             $response = Http::timeout(2)->get(config('core_engine.backend_url'));
             return $response->json();
         });
     }
-    // NUEVO: también expone los Core Services (siempre activos)
-    public static function coreServices(): array {
-        return self::productInfo()['core_services'] ?? [];
-    }
-    public static function activeFeatures(): array {
-        return self::productInfo()['active_optional_features'] ?? [];
+    public static function academicSetting(string $key, $default = null) {
+        return self::productInfo()['academic_settings'][$key] ?? $default;
     }
 }
 ```
 
-### La directiva @feature en Blade — ya registrada
+### Directiva @feature en Blade
 
 ```blade
 @feature('attendance')
@@ -172,153 +192,281 @@ class FeatureGate {
 
 ---
 
-## El problema actual del frontend
+## Tu trabajo en Sprint 2 (COR-17 a COR-21)
 
-El `AttendanceController` existente devuelve datos hardcodeados:
+Eres **Dev B**. Tu responsabilidad es construir los Core Assets de
+frontend de Laravel: cliente HTTP reutilizable, componentes Blade
+genéricos, vistas reales conectadas al backend, y layout con
+navegación condicional.
+
+### COR-17 — `CoreEngineClient.php` (hacer PRIMERO — todo lo demás depende de esto)
+
+**Archivo:** `app/Core/Services/CoreEngineClient.php`
+
+Clase reutilizable con métodos:
 ```php
-$sampleData = [
-    ['persona' => 'P-001', 'curso' => 'C-001', 'presente' => true],
-];
+class CoreEngineClient {
+    private string $baseUrl;
+
+    public function __construct() {
+        $this->baseUrl = rtrim(config('core_engine.backend_url'), '/');
+    }
+
+    public function get(string $endpoint): array { ... }
+    public function post(string $endpoint, array $data): array { ... }
+    public function put(string $endpoint, array $data): array { ... }
+    public function patch(string $endpoint, array $data): array { ... }
+    public function delete(string $endpoint): array { ... }
+}
 ```
 
-No hay llamada real al backend, no hay CRUD, no hay componentes
-reutilizables — solo datos inventados.
+Requisitos:
+- URL base desde `config('core_engine.backend_url')`
+- Timeout de 3 segundos en todos los métodos
+- Manejo de errores: si el backend devuelve 4xx/5xx, relanzar con mensaje claro
+- `FeatureGate.php` debe refactorizarse para usar esta clase internamente
+
+Prueba de verificación:
+```php
+$client = new CoreEngineClient();
+$info = $client->get('/');
+dd($info['active_optional_features']); // ['attendance', 'grading', 'enrollment'] en colegio
+```
 
 ---
 
-## Tu trabajo en Sprint 2 (COR-17 a COR-21)
+### COR-18 — Componente Blade `<x-data-table>` (después de COR-17)
 
-Eres **Dev B**. Tu responsabilidad es construir los **Core Assets de
-frontend** de Laravel: el cliente HTTP reutilizable, los componentes
-Blade genéricos, las vistas reales conectadas al backend, y el layout
-con navegación condicional.
+**Archivo:** `resources/views/components/data-table.blade.php`
 
-### Las tareas en orden de dependencia
+Props:
+- `$columns` — array de etiquetas de columnas
+- `$rows` — array de arrays con los datos
+- `$emptyMessage` — mensaje cuando no hay datos (opcional)
 
-**COR-17 — `CoreEngineClient.php`** (hacer primero — todo lo demás depende de esto)
-- Archivo: `app/Core/Services/CoreEngineClient.php`
-- Clase reutilizable con métodos:
-  - `get(string $endpoint): array`
-  - `post(string $endpoint, array $data): array`
-  - `put(string $endpoint, array $data): array`
-  - `patch(string $endpoint, array $data): array`
-  - `delete(string $endpoint): array`
-- Centraliza: URL base desde `config('core_engine.backend_url')`,
-  timeout de 3 segundos, manejo de errores claro
-- `FeatureGate.php` se refactoriza para usar esta clase
-- Probar: `CoreEngineClient::get('/')` debe devolver el JSON real del backend
+Debe mostrar un badge de color para campos especiales:
+- `estado_aprobacion`: verde para "APROBADO", rojo para "REPROBADO"
+- `estado` en attendance: verde APROBADO, amarillo EN_RIESGO, rojo REPROBADO_FALTA
+- `aprueba`: ✅ / ❌
 
-**COR-18 — Componente Blade `<x-data-table>`** (después de COR-17)
-- Archivo: `resources/views/components/data-table.blade.php`
-- Props: `$columns` (array de etiquetas), `$rows` (array de arrays de datos)
-- Renderiza tabla HTML genérica y reutilizable
-- **Nuevo requerimiento:** debe mostrar `valor_display` en la columna de nota
-  (no `valor` directamente) — el backend ya diferencia entre numérico y literal
-- Ejemplo de uso:
+Uso de ejemplo:
 ```blade
 <x-data-table
-    :columns="['Persona', 'Curso', 'Nota', 'Escala']"
-    :rows="$registros"
+    :columns="['Persona', 'Curso', 'Nota', 'Escala', 'Aprueba', 'Estado']"
+    :rows="$notas"
+    emptyMessage="No hay calificaciones registradas"
 />
 ```
 
-**COR-19 — Componente Blade `<x-entity-form>`** (después de COR-17)
-- Archivo: `resources/views/components/entity-form.blade.php`
-- Props: `$fields`, `$action`, `$submitLabel`
-- Reutilizable para: crear Persona, crear Nota, registrar Asistencia
-- Ejemplo de uso para crear persona:
+---
+
+### COR-19 — Componente Blade `<x-entity-form>` (después de COR-17)
+
+**Archivo:** `resources/views/components/entity-form.blade.php`
+
+Props:
+- `$fields` — array de definición de campos
+- `$action` — URL de destino del formulario
+- `$method` — GET/POST (default POST)
+- `$submitLabel` — texto del botón
+
+Tipos de campo soportados: `text`, `number`, `date`, `select`, `checkbox`
+
+Uso para crear persona:
 ```blade
 <x-entity-form
     :fields="[
-        ['name' => 'nombres', 'type' => 'text', 'label' => 'Nombres'],
-        ['name' => 'apellidos', 'type' => 'text', 'label' => 'Apellidos'],
-        ['name' => 'documento_identidad', 'type' => 'text', 'label' => 'Cedula (10 digitos)']
+        ['name' => 'nombres', 'type' => 'text', 'label' => 'Nombres', 'required' => true],
+        ['name' => 'apellidos', 'type' => 'text', 'label' => 'Apellidos', 'required' => true],
+        ['name' => 'documento_identidad', 'type' => 'text', 'label' => 'Cédula (10 dígitos)', 'required' => true]
     ]"
     action="/personas"
     submitLabel="Registrar Persona"
 />
 ```
 
-**COR-20 — Vistas reales de los 5 módulos** (después de COR-17, COR-18, COR-19)
-
-Ahora hay más módulos que antes porque el backend tiene Core Services:
-
-- **PersonasModule** (Core Service — siempre visible):
-  - `PersonasController`: index() lista personas, store() crea persona
-  - Vista: tabla con `<x-data-table>` + formulario de registro con `<x-entity-form>`
-  - **Nota:** el backend valida cédula ecuatoriana — mostrar error 409 al usuario si es inválida
-
-- **GradingModule** (Optional Feature):
-  - `GradingController`: index() + store()
-  - Vista: tabla que muestra `valor_display` (puede ser "Muy Bueno" o 8.5 según producto)
-  - La primera línea del controlador SIEMPRE:
-    ```php
-    abort_unless(FeatureGate::isActive('grading'), 404);
-    ```
-
-- **AttendanceModule** (ya existe, refactorizar):
-  - Reemplazar el array hardcodeado por llamada real a `CoreEngineClient::get('/attendance/')`
-  - **Nuevo:** mostrar las estadísticas que devuelve el backend:
-    `estadisticas.porcentaje_asistencia` y `estadisticas.estado`
-
-- **EnrollmentModule** (Optional Feature):
-  - `EnrollmentController`: index() + store() + updateStatus()
-  - Vista: tabla + formulario + botón para cambiar estado de matrícula
-
-- **CursosModule** (Core Service — puede ser solo lectura en el frontend):
-  - `CursosController`: index() — lista cursos (útil para los dropdowns de los formularios)
-
-**COR-21 — Layout base con navegación condicional** (hacer último)
-- Archivo: `resources/views/layouts/app.blade.php`
-- Siempre visible (Core Services):
+Uso para registrar nota:
 ```blade
-<a href="/personas">Personas</a>
-<a href="/cursos">Cursos</a>
+<x-entity-form
+    :fields="[
+        ['name' => 'persona_id', 'type' => 'select', 'label' => 'Estudiante', 'options' => $personas],
+        ['name' => 'curso_id', 'type' => 'select', 'label' => 'Curso', 'options' => $cursos],
+        ['name' => 'valor', 'type' => 'number', 'label' => 'Nota (0-10)', 'min' => 0, 'max' => 10, 'step' => '0.1'],
+        ['name' => 'observacion', 'type' => 'text', 'label' => 'Observación']
+    ]"
+    action="/grading"
+    submitLabel="Registrar Nota"
+/>
 ```
-- Condicional por producto (Optional Features):
+
+---
+
+### COR-20 — Vistas reales de los 6 módulos (después de COR-17, COR-18, COR-19)
+
+#### PersonasModule (Core Service — siempre visible)
+
+**Archivo:** `app/Modules/PersonasModule/Http/Controllers/PersonasController.php`
+
+```php
+class PersonasController extends Controller {
+    public function index() {
+        $personas = CoreEngineClient::get('/personas/');
+        return view('personas.index', compact('personas'));
+    }
+
+    public function store(Request $request) {
+        try {
+            CoreEngineClient::post('/personas/', $request->all());
+            return redirect('/personas')->with('success', 'Persona registrada');
+        } catch (\Exception $e) {
+            // El backend devuelve 409 si la cédula es inválida o duplicada
+            return back()->withErrors(['documento' => $e->getMessage()]);
+        }
+    }
+}
+```
+
+Vista: tabla con `<x-data-table>` + formulario `<x-entity-form>`.
+**Importante:** mostrar el error 409 del backend si la cédula es inválida.
+
+#### GradingModule (Optional Feature)
+
+```php
+class GradingController extends Controller {
+    public function index() {
+        abort_unless(FeatureGate::isActive('grading'), 404);
+        $response = CoreEngineClient::get('/grading/');
+        $notas = $response['data'];
+        $scale = $response['evaluation_scale_used'];
+        $passing = $response['passing_grade_used'];
+        return view('grading.index', compact('notas', 'scale', 'passing'));
+    }
+}
+```
+
+Vista debe mostrar:
+- `valor_display` en la columna de nota (CA-02 — puede ser "Muy Bueno" o 8.5)
+- Badge `estado_aprobacion` (CA-04 — APROBADO/REPROBADO, color según valor)
+- El `passing_grade_used` en el encabezado: "Nota mínima para aprobar: 7.0"
+
+#### AttendanceModule (Optional Feature — REFACTORIZAR el existente)
+
+Reemplazar los datos hardcodeados por llamada real. Vista debe mostrar:
+- Las estadísticas de CA-03: `porcentaje_asistencia`, `estado`, `umbral_aprobado`
+- El resumen por persona con su estado individual
+- Sección de estadísticas globales visible antes de la tabla
+
+```php
+abort_unless(FeatureGate::isActive('attendance'), 404);
+$response = CoreEngineClient::get('/attendance/');
+$estadisticas = $response['estadisticas'];
+$resumen = $response['resumen_por_persona'];
+$registros = $response['data'];
+```
+
+#### EnrollmentModule (Optional Feature)
+
+```php
+abort_unless(FeatureGate::isActive('enrollment'), 404);
+
+// En store():
+try {
+    CoreEngineClient::post('/enrollment/', $request->all());
+} catch (\Exception $e) {
+    // HTTP 409 = límite de materias superado (CA-05)
+    return back()->withErrors(['limite' => $e->getMessage()]);
+}
+```
+
+Vista incluye botones para cambiar estado: `PATCH /enrollment/{id}/status`.
+
+#### CursosModule (Core Service — útil para dropdowns)
+
+```php
+// Devuelve lista de cursos para llenar <select> en otros formularios
+$cursos = CoreEngineClient::get('/cursos/');
+// Con filtro por período:
+$cursos = CoreEngineClient::get('/cursos/?periodo_id=PER-2024-A');
+```
+
+#### ScheduleModule (Optional Feature — si está activo)
+
+```php
+abort_unless(FeatureGate::isActive('schedule'), 404);
+$horarios = CoreEngineClient::get('/schedule/');
+```
+
+Vista básica. La implementación completa del backend es Sprint 3.
+
+---
+
+### COR-21 — Layout base con navegación condicional (hacer ÚLTIMO)
+
+**Archivo:** `resources/views/layouts/app.blade.php`
+
 ```blade
-@feature('grading')
-    <a href="/grading">Calificaciones</a>
-@endfeature
-@feature('attendance')
-    <a href="/attendance">Asistencia</a>
-@endfeature
-@feature('enrollment')
-    <a href="/enrollment">Matriculas</a>
-@endfeature
+<nav>
+    {{-- Core Services: siempre visibles --}}
+    <a href="/personas">Personas</a>
+    <a href="/cursos">Cursos</a>
+    <a href="/periodos">Períodos</a>
+
+    {{-- Optional Features: condicionales según el producto activo --}}
+    @feature('grading')
+        <a href="/grading">Calificaciones</a>
+    @endfeature
+
+    @feature('attendance')
+        <a href="/attendance">Asistencia</a>
+    @endfeature
+
+    @feature('enrollment')
+        <a href="/enrollment">Matrículas</a>
+    @endfeature
+
+    @feature('schedule')
+        <a href="/schedule">Horarios</a>
+    @endfeature
+
+    @feature('reports')
+        <a href="/reports">Reportes</a>
+    @endfeature
+
+    @feature('certificates')
+        <a href="/certificates">Certificados</a>
+    @endfeature
+
+    {{-- Nombre del producto activo --}}
+    <span class="product-name">
+        {{ \App\Core\Services\FeatureGate::productInfo()['product'] ?? 'Producto' }}
+    </span>
+</nav>
 ```
-- Muestra el nombre del producto activo desde `FeatureGate::productInfo()['product']`
 
 ---
 
 ## Configuración del proyecto Laravel
 
 ```env
-# .env
+# .env — apuntar a cualquier producto cambiando solo el puerto
 CORE_ENGINE_BACKEND_URL=http://127.0.0.1:8001/
 ```
 
-```php
-// bootstrap/providers.php
-App\Providers\FeatureGateServiceProvider::class,
-```
-
-Para probar contra Universidad (puerto 8002):
-```env
-CORE_ENGINE_BACKEND_URL=http://127.0.0.1:8002/
-```
-La navegación condicional ocultará automáticamente "Asistencia" sin tocar código.
+**Prueba de variabilidad completa:**
+1. `.env` apunta al colegio (8001) → navega a `/grading` → notas como "Muy Bueno", "Bueno"
+2. Cambia a universidad (8002) → navega a `/grading` → notas como 8.5, 6.0
+3. Navega a `/attendance` en colegio → funciona
+4. Navega a `/attendance` en universidad → 404 (el menú tampoco lo muestra)
 
 ---
 
 ## Lo que necesito de ti en este chat
 
-1. Guíame paso a paso comenzando por COR-17 (`CoreEngineClient.php`),
-   con el código completo listo para pegar — no pseudocódigo.
-2. Para cada componente Blade, dame también un ejemplo de vista completa
-   que lo use, para poder probarlo en el navegador.
-3. Después de cada tarea, dime qué URL abrir en el navegador para verificar.
-4. Recuérdame siempre que ningún controlador puede tener datos hardcodeados.
-5. Al implementar PersonasModule: el backend puede devolver error 409 si la
-   cédula es inválida — el formulario debe mostrar ese error al usuario.
-6. El código debe funcionar con Laravel 11 (la versión actual).
+1. Empieza por **COR-17** (`CoreEngineClient.php`) — código completo listo para pegar.
+2. Para cada componente Blade, dame también la vista completa de ejemplo.
+3. En GradingModule: mostrar `passing_grade_used` del backend, y `estado_aprobacion` con badge de color.
+4. En AttendanceModule: mostrar las `estadisticas` del CA-03 en una card resumen antes de la tabla.
+5. En EnrollmentModule: mostrar el error 409 (límite CA-05) de forma amigable.
+6. El layout debe usar `@feature` con los 6 features disponibles.
+7. Verificar que el código funciona con **Laravel 11**.
+8. Recuérdame siempre: ningún controlador puede tener datos hardcodeados.
