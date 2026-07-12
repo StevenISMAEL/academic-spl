@@ -18,8 +18,17 @@ Route::middleware('auth')->get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
 
-// Carga de rutas por módulo. Cuando un módulo se "apaga" en la
-// configuración, sus rutas siguen registradas (Laravel no lee el
-// YAML), pero el controlador del módulo aborta con 404 — ver
-// AttendanceController::index(). Es defensa en profundidad.
+// ── Core Services (siempre activos) ────────────────────────────────────────
+require base_path('app/Modules/PersonasModule/routes.php');
+require base_path('app/Modules/CursosModule/routes.php');
+require base_path('app/Modules/PeriodosModule/routes.php');
+
+// ── Optional Features (las rutas están registradas, pero el controlador
+//    de cada módulo aborta con 404 si la feature no está activa en el YAML.
+//    Es defensa en profundidad). ─────────────────────────────────────────
 require base_path('app/Modules/AttendanceModule/routes.php');
+require base_path('app/Modules/GradingModule/routes.php');
+require base_path('app/Modules/EnrollmentModule/routes.php');
+require base_path('app/Modules/ScheduleModule/routes.php');
+require base_path('app/Modules/ReportsModule/routes.php');
+require base_path('app/Modules/CertificatesModule/routes.php');

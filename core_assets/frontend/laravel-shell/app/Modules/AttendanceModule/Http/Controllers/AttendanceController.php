@@ -2,34 +2,65 @@
 
 namespace App\Modules\AttendanceModule\Http\Controllers;
 
+use App\Core\Services\CoreEngineClient;
 use App\Core\Services\FeatureGate;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Exception;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Core Asset (plantilla) — Módulo Attendance, ejemplo de patrón
- * desacoplado (COR-10).
- *
- * Este controlador es la plantilla que cualquier futuro módulo debe
- * seguir: 1) se autoverifica activo antes de hacer nada, 2) vive
- * completamente fuera de app/Http/Controllers central, 3) no depende
- * de ningún otro módulo.
+ * Core Asset (refactorizado) — Módulo Attendance Sprint 2.
+ * Reemplaza los datos hardcodeados por llamadas reales al Core Engine.
+ * Muestra estadísticas CA-03 (AttendanceCalculator) y resumen por persona.
  */
 class AttendanceController extends Controller
 {
+    protected CoreEngineClient $client;
+
+    public function __construct()
+    {
+        $this->client = new CoreEngineClient();
+    }
+
     public function index()
     {
-        // Defensa en profundidad: aunque la ruta esté registrada, el
-        // propio módulo se niega a responder si no está activo. Así,
-        // ni un error de configuración en las rutas expone el módulo.
         abort_unless(FeatureGate::isActive('attendance'), Response::HTTP_NOT_FOUND);
 
-        $sampleData = [
-            ['persona' => 'P-001', 'curso' => 'C-001', 'presente' => true],
-            ['persona' => 'P-002', 'curso' => 'C-001', 'presente' => false],
-        ];
+        $response = $this->client->get('/attendance/');
 
-        return view('modules.attendance.index', ['registros' => $sampleData]);
+        $estadisticas = $response['estadisticas'] ?? [];
+        $resumen      = $response['resumen_por_persona'] ?? [];
+        $registros    = $response['data'] ?? [];
+
+        $personasResponse = $this->client->get('/personas/');
+        $cursosResponse = $this->client->get('/cursos/');
+
+        $personas = $personasResponse['data'] ?? [];
+        $cursos = $cursosResponse['data'] ?? [];
+
+        return view('modules.attendance.index', compact('estadisticas', 'resumen', 'registros', 'personas', 'cursos'));
+    }
+
+    public function store(Request $request)
+    {
+        abort_unless(FeatureGate::isActive('attendance'), Response::HTTP_NOT_FOUND);
+
+        $request->validate([
+            'persona_id' => 'required|string',
+            'curso_id'   => 'required|string',
+            'fecha'      => 'required|date',
+            'presente'   => 'boolean',
+        ]);
+
+        try {
+            $data = $request->only(['persona_id', 'curso_id', 'fecha']);
+            $data['presente'] = $request->boolean('presente');
+            $data['justificacion'] = $request->input('justificacion');
+            $this->client->post('/attendance/', $data);
+            return redirect('/attendance')->with('success', 'Registro de asistencia guardado.');
+        } catch (Exception $e) {
+            return back()->withInput()->withErrors(['error' => $e->getMessage()]);
+        }
     }
 }
