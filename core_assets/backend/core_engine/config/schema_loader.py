@@ -56,6 +56,7 @@ if __name__ == "__main__":
     targets = sys.argv[1:] or [
         "products/colegio-basico/product_config.yaml",
         "products/universidad-compleja/product_config.yaml",
+        "products/instituto-tecnico/product_config.yaml",
     ]
     for target in targets:
         try:

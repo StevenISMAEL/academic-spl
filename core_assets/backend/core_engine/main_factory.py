@@ -42,6 +42,9 @@ from core_assets.backend.core_engine.features.cursos.router import (
 from core_assets.backend.core_engine.features.personas.router import (
     router as personas_router,
 )
+from core_assets.backend.core_engine.features.auth.router import (
+    router as auth_router,
+)
 
 # ── Optional Features (Variabilidad) ─────────────────────────────────────────
 from core_assets.backend.core_engine.features.attendance.router import (
@@ -81,6 +84,7 @@ CORE_SERVICES = [
     periodos_router,   # Base de la estructura temporal
     cursos_router,     # Cursos dentro de cada período
     personas_router,   # Estudiantes, docentes, etc.
+    auth_router,       # Autenticación JWT (COR-22)
 ]
 
 
@@ -132,7 +136,7 @@ def create_app(config_path: str | None = None) -> FastAPI:
         return {
             "product": flags.product_name(),
             "config_file_used": resolved_path,
-            "core_services": ["periodos", "cursos", "personas"],
+            "core_services": ["periodos", "cursos", "personas", "auth"],
             "active_optional_features": mounted_features,
             "available_optional_features": list(FEATURE_REGISTRY.keys()),
             "academic_settings": flags.get_setting("academic_settings", default={}),
