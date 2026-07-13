@@ -1,0 +1,19 @@
+metadata:
+  product_name: colegio de la universidad utn
+  product_type: colegio
+features:
+  grading: true
+  attendance: true
+  enrollment: true
+  schedule: false
+  reports: false
+  certificates: false
+academic_settings:
+  evaluation_scale: literal
+  grading_max_value: 9
+  passing_grade: 6.0
+  attendance_min_percentage: 30.0
+  max_enrollments_per_period: 3
+  periods_per_year: 1
+database:
+  path: products/colegio-utn/colegio_utn.db

@@ -1,0 +1,19 @@
+metadata:
+  product_name: tset
+  product_type: colegio
+features:
+  grading: true
+  attendance: false
+  enrollment: false
+  schedule: false
+  reports: false
+  certificates: false
+academic_settings:
+  evaluation_scale: literal
+  grading_max_value: 8
+  passing_grade: 7.0
+  attendance_min_percentage: 80.0
+  max_enrollments_per_period: 3
+  periods_per_year: 1
+database:
+  path: products/test-3/test_3.db

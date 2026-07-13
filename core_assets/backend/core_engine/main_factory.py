@@ -42,9 +42,9 @@ from core_assets.backend.core_engine.features.cursos.router import (
 from core_assets.backend.core_engine.features.personas.router import (
     router as personas_router,
 )
-from core_assets.backend.core_engine.features.auth.router import (
-    router as auth_router,
-)
+# from core_assets.backend.core_engine.features.auth.router import (
+#     router as auth_router,
+# )
 
 # ── Optional Features (Variabilidad) ─────────────────────────────────────────
 from core_assets.backend.core_engine.features.attendance.router import (
@@ -84,7 +84,7 @@ CORE_SERVICES = [
     periodos_router,   # Base de la estructura temporal
     cursos_router,     # Cursos dentro de cada período
     personas_router,   # Estudiantes, docentes, etc.
-    auth_router,       # Autenticación JWT (COR-22)
+    # auth_router,       # Autenticación JWT (COR-22) - temporalmente deshabilitado por falta de 'jose'
 ]
 
 
