@@ -58,12 +58,12 @@ academic-spl/
 │   │   ├── attendance/router.py             ← Optional Feature (CA-03)
 │   │   ├── grading/router.py                ← Optional Feature (CA-02 + CA-04)
 │   │   ├── enrollment/router.py             ← Optional Feature (CA-05)
-│   │   ├── schedule/router.py               ← Optional Feature (stub)
-│   │   ├── reports/router.py                ← Optional Feature (stub)
-│   │   └── certificates/router.py           ← Optional Feature (stub)
+│   │   ├── schedule/router.py               ← Optional Feature (implementado)
+│   │   ├── reports/router.py                ← Optional Feature (implementado)
+│   │   └── certificates/router.py           ← Optional Feature (implementado)
 │   ├── persistence/
 │   │   ├── connection_resolver.py
-│   │   ├── models.py                        ← 6 modelos ORM
+│   │   ├── models.py                        ← 8 modelos ORM
 │   │   ├── migrate.py                       ← CLI idempotente
 │   │   ├── seeder.py                        ← siembra desde YAML
 │   │   ├── persona_repository.py            ← usa CA-01
@@ -71,7 +71,9 @@ academic-spl/
 │   │   ├── periodo_repository.py
 │   │   ├── grade_repository.py
 │   │   ├── attendance_repository.py
-│   │   └── enrollment_repository.py        ← tiene count_active_enrollments()
+│   │   ├── enrollment_repository.py         ← tiene count_active_enrollments()
+│   │   ├── schedule_repository.py           ← CRUD horarios
+│   │   └── certificate_repository.py        ← CRUD certificados
 │   └── main_factory.py                      ← FEATURE_REGISTRY con 6 features
 ├── products/
 │   ├── colegio-basico/product_config.yaml

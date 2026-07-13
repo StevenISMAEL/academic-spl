@@ -58,12 +58,12 @@ academic-spl/
 │   │   ├── attendance/router.py             ← Optional Feature (usa CA-03)
 │   │   ├── grading/router.py                ← Optional Feature (usa CA-02 + CA-04)
 │   │   ├── enrollment/router.py             ← Optional Feature (usa CA-05)
-│   │   ├── schedule/router.py               ← Optional Feature (stub, Sprint 3)
-│   │   ├── reports/router.py                ← Optional Feature (stub, Sprint 3)
-│   │   └── certificates/router.py           ← Optional Feature (stub, Sprint 3)
+│   │   ├── schedule/router.py               ← Optional Feature (implementado)
+│   │   ├── reports/router.py                ← Optional Feature (implementado)
+│   │   └── certificates/router.py           ← Optional Feature (implementado)
 │   ├── persistence/
 │   │   ├── connection_resolver.py           ← BD por producto desde database.path del YAML
-│   │   ├── models.py                        ← ORM: PersonaDB, CursoDB, PeriodoDB, EvaluacionDB, AsistenciaDB, MatriculaDB
+│   │   ├── models.py                        ← ORM: PersonaDB, CursoDB, PeriodoDB, EvaluacionDB, AsistenciaDB, MatriculaDB, HorarioDB, CertificadoDB
 │   │   ├── migrate.py                       ← CLI idempotente de migraciones
 │   │   ├── seeder.py                        ← Siembra desde seed_data del YAML
 │   │   ├── persona_repository.py            ← CRUD + CedulaValidator (CA-01)
@@ -71,7 +71,9 @@ academic-spl/
 │   │   ├── periodo_repository.py            ← CRUD
 │   │   ├── grade_repository.py              ← CRUD calificaciones
 │   │   ├── attendance_repository.py         ← CRUD asistencias
-│   │   └── enrollment_repository.py        ← CRUD matrículas + count_active_enrollments()
+│   │   ├── enrollment_repository.py         ← CRUD matrículas + count_active_enrollments()
+│   │   ├── schedule_repository.py           ← CRUD horarios
+│   │   └── certificate_repository.py        ← CRUD certificados
 │   └── main_factory.py                      ← Application Factory: Core Services siempre + Optional Features por YAML
 ├── products/
 │   ├── colegio-basico/
@@ -214,12 +216,16 @@ GET    /enrollment/{id}    → matrícula individual
 PATCH  /enrollment/{id}/status → {"estado": "inscrito|retirado|aprobado|reprobado"}
 DELETE /enrollment/{id}    → eliminar matrícula
 
-GET    /schedule/          → listar horarios (stub, implementar Sprint 3)
+GET    /schedule/          → listar horarios por día
+POST   /schedule/          → crear horario {"curso_id", "dia_semana", "hora_inicio", "hora_fin", "aula"}
 GET    /schedule/{curso_id}→ horario de un curso
-GET    /reports/           → reportes disponibles
-GET    /reports/rendimiento/{persona_id} → reporte por estudiante
-GET    /certificates/      → listar certificados
-POST   /certificates/{persona_id}/generate → generar certificado (stub Sprint 3)
+DELETE /schedule/{id}      → eliminar horario
+GET    /reports/           → config producto y lista de estudiantes
+GET    /reports/rendimiento/{persona_id} → reporte detallado notas+asistencia
+GET    /reports/consolidado/ → tabla de estados de todos los estudiantes
+GET    /certificates/      → listar certificados emitidos/rechazados
+POST   /certificates/{persona_id}/generate → verifica CA-03/CA-04 y emite/rechaza
+GET    /certificates/persona/{persona_id} → historial de certificados
 ```
 
 ---

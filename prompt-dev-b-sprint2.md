@@ -113,14 +113,18 @@ POST   /enrollment/         → {"persona_id", "curso_id"} ← puede dar 409 si 
 PATCH  /enrollment/{id}/status → {"estado": "inscrito|retirado|aprobado|reprobado"}
 DELETE /enrollment/{id}     → eliminar matrícula
 
-GET    /schedule/           → listar horarios
-GET    /schedule/{curso_id} → horario de un curso (stub, Sprint 3)
+GET    /schedule/           → listar horarios agrupados por día
+POST   /schedule/           → crear horario
+GET    /schedule/{curso_id} → horario de un curso
+DELETE /schedule/{id}       → eliminar horario
 
-GET    /reports/            → reportes disponibles
-GET    /reports/rendimiento/{persona_id} → reporte por estudiante (stub, Sprint 3)
+GET    /reports/            → config del producto y lista de estudiantes
+GET    /reports/rendimiento/{persona_id} → reporte detallado (notas + asistencia)
+GET    /reports/consolidado/ → tabla de estados de todos los estudiantes
 
-GET    /certificates/       → listar certificados
-POST   /certificates/{persona_id}/generate → generar certificado (stub, Sprint 3)
+GET    /certificates/       → listar certificados emitidos/rechazados
+POST   /certificates/{persona_id}/generate → verifica CA-03/CA-04 y emite/rechaza
+GET    /certificates/persona/{persona_id} → historial de un estudiante
 ```
 
 ### Datos sembrados en Colegio (puerto 8001)
@@ -396,7 +400,23 @@ abort_unless(FeatureGate::isActive('schedule'), 404);
 $horarios = CoreEngineClient::get('/schedule/');
 ```
 
-Vista básica. La implementación completa del backend es Sprint 3.
+Vista funcional: Muestra los horarios agrupados por día de la semana e incluye formulario para asignar aula.
+
+#### ReportsModule (Optional Feature)
+
+```php
+abort_unless(FeatureGate::isActive('reports'), 404);
+$data = CoreEngineClient::get('/reports/consolidado/');
+// Contiene la tabla con todos los estudiantes y su estado_final
+```
+
+#### CertificatesModule (Optional Feature)
+
+```php
+abort_unless(FeatureGate::isActive('certificates'), 404);
+$response = CoreEngineClient::post('/certificates/' . $id . '/generate');
+// Muestra si fue emitido o rechazado y el motivo_rechazo.
+```
 
 ---
 

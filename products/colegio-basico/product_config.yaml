@@ -4,7 +4,7 @@
 # Derivado de la Linea de Productos Academica sin modificar el Core.
 
 metadata:
-  product_name: "Instituto Basico Demo"
+  product_name: "Colegio Basico Demo"
   product_type: "k12"
 
 features:

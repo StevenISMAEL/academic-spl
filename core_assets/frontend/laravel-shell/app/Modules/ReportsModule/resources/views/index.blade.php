@@ -1,10 +1,134 @@
 <x-layout>
-    <h2 style="font-size: 1.5rem; font-weight: 700; margin: 0 0 1rem; color: var(--text-dark);">Reportes Académicos</h2>
-    <div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:0.5rem;padding:1.25rem;color:#92400e;font-size:0.875rem;">
-        <p style="margin:0;font-weight:600;">🚧 Módulo en desarrollo (Sprint 3)</p>
-        <p style="margin:0.25rem 0 0;">Los reportes académicos completos estarán disponibles en el próximo sprint.</p>
+<h2 style="font-size:1.5rem;font-weight:700;margin:0 0 1.5rem;color:var(--text-dark);">📊 Reportes Académicos</h2>
+
+{{-- Configuración del producto --}}
+@php
+    $config = $reportes['configuracion_producto'] ?? [];
+    $personas = $reportes['personas_disponibles'] ?? [];
+@endphp
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin-bottom:1.5rem;">
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:0.5rem;padding:1rem;text-align:center;">
+        <div style="font-size:0.7rem;font-weight:600;color:#1e40af;text-transform:uppercase;letter-spacing:.05em;">Producto</div>
+        <div style="font-size:1rem;font-weight:700;color:#1e3a8a;margin-top:.25rem;">{{ $config['product_name'] ?? '—' }}</div>
     </div>
-    @if(!empty($reportes))
-        <pre style="margin-top:1.5rem;background:#f8fafc;padding:1rem;border-radius:0.5rem;font-size:0.8rem;overflow:auto;">{{ json_encode($reportes, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE) }}</pre>
-    @endif
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:0.5rem;padding:1rem;text-align:center;">
+        <div style="font-size:0.7rem;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:.05em;">Nota Mínima</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#166534;margin-top:.25rem;">{{ $config['passing_grade'] ?? '—' }}</div>
+    </div>
+    <div style="background:#fefce8;border:1px solid #fde68a;border-radius:0.5rem;padding:1rem;text-align:center;">
+        <div style="font-size:0.7rem;font-weight:600;color:#a16207;text-transform:uppercase;letter-spacing:.05em;">Asistencia Mín.</div>
+        <div style="font-size:1.5rem;font-weight:700;color:#92400e;margin-top:.25rem;">{{ $config['attendance_min_percentage'] ?? '—' }}%</div>
+    </div>
+    <div style="background:#f5f3ff;border:1px solid #ddd6fe;border-radius:0.5rem;padding:1rem;text-align:center;">
+        <div style="font-size:0.7rem;font-weight:600;color:#6d28d9;text-transform:uppercase;letter-spacing:.05em;">Escala</div>
+        <div style="font-size:1rem;font-weight:700;color:#4c1d95;margin-top:.25rem;">{{ ucfirst($config['evaluation_scale'] ?? '—') }}</div>
+    </div>
+</div>
+
+{{-- Selector de estudiante --}}
+<div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
+    <label style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">Ver reporte de:</label>
+    <select id="persona-select" onchange="verReporte(this.value)"
+            style="padding:.5rem 1rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;background:#fff;cursor:pointer;min-width:220px;">
+        <option value="">— Seleccionar estudiante —</option>
+        @foreach($personas as $p)
+            <option value="{{ $p['id'] }}">{{ $p['nombre'] }}</option>
+        @endforeach
+    </select>
+    <a href="/reports/consolidado"
+       style="background:#1e3a8a;color:#fff;padding:.5rem 1.25rem;border-radius:.375rem;font-size:.875rem;font-weight:600;text-decoration:none;">
+        📋 Consolidado General
+    </a>
+</div>
+
+{{-- Panel de reporte individual (se carga dinámicamente) --}}
+<div id="reporte-panel"></div>
+
+{{-- Reporte consolidado si viene en la respuesta --}}
+@if(!empty($reportes['consolidado']))
+    @php $consolidado = $reportes; @endphp
+    <h3 style="font-size:1.1rem;font-weight:700;margin:0 0 1rem;color:var(--text-dark);">
+        Consolidado — {{ $consolidado['product_name'] ?? '' }}
+    </h3>
+
+    {{-- Resumen de estados --}}
+    @php $estados = $consolidado['resumen_estados'] ?? []; @endphp
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.25rem;">
+        @foreach($estados as $estado => $count)
+            @php
+                $color = match($estado) {
+                    'APROBADO'       => '#15803d',
+                    'REPROBADO_NOTA' => '#b91c1c',
+                    'REPROBADO_FALTA'=> '#c2410c',
+                    'EN_RIESGO'      => '#b45309',
+                    default          => '#475569',
+                };
+                $bg = match($estado) {
+                    'APROBADO'       => '#dcfce7',
+                    'REPROBADO_NOTA' => '#fee2e2',
+                    'REPROBADO_FALTA'=> '#ffedd5',
+                    'EN_RIESGO'      => '#fef3c7',
+                    default          => '#f1f5f9',
+                };
+            @endphp
+            <span style="background:{{ $bg }};color:{{ $color }};padding:.375rem .75rem;border-radius:9999px;font-size:.8rem;font-weight:600;">
+                {{ $estado }}: {{ $count }}
+            </span>
+        @endforeach
+    </div>
+
+    <table style="width:100%;border-collapse:collapse;font-size:.875rem;">
+        <thead>
+            <tr style="background:#f8fafc;border-bottom:2px solid #e2e8f0;">
+                <th style="padding:.75rem;text-align:left;font-size:.75rem;text-transform:uppercase;letter-spacing:.05em;color:#64748b;">Estudiante</th>
+                <th style="padding:.75rem;text-align:center;color:#64748b;font-size:.75rem;text-transform:uppercase;">Promedio</th>
+                <th style="padding:.75rem;text-align:center;color:#64748b;font-size:.75rem;text-transform:uppercase;">Asistencia</th>
+                <th style="padding:.75rem;text-align:center;color:#64748b;font-size:.75rem;text-transform:uppercase;">Estado Final</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach($consolidado['consolidado'] as $fila)
+                @php
+                    $ef = $fila['estado_final'];
+                    $badgeColor = match($ef) {
+                        'APROBADO'        => '#15803d',
+                        'REPROBADO_NOTA'  => '#b91c1c',
+                        'REPROBADO_FALTA' => '#c2410c',
+                        'EN_RIESGO'       => '#b45309',
+                        default           => '#475569',
+                    };
+                    $badgeBg = match($ef) {
+                        'APROBADO'        => '#dcfce7',
+                        'REPROBADO_NOTA'  => '#fee2e2',
+                        'REPROBADO_FALTA' => '#ffedd5',
+                        'EN_RIESGO'       => '#fef3c7',
+                        default           => '#f1f5f9',
+                    };
+                @endphp
+                <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:.75rem;font-weight:500;">{{ $fila['nombre_completo'] }}</td>
+                    <td style="padding:.75rem;text-align:center;">
+                        {{ $fila['promedio'] !== null ? number_format($fila['promedio'], 2) : '—' }}
+                    </td>
+                    <td style="padding:.75rem;text-align:center;">
+                        {{ $fila['asistencia_pct'] !== null ? number_format($fila['asistencia_pct'], 1).'%' : '—' }}
+                    </td>
+                    <td style="padding:.75rem;text-align:center;">
+                        <span style="background:{{ $badgeBg }};color:{{ $badgeColor }};padding:.25rem .625rem;border-radius:9999px;font-size:.75rem;font-weight:600;">
+                            {{ $ef }}
+                        </span>
+                    </td>
+                </tr>
+            @endforeach
+        </tbody>
+    </table>
+@endif
+
+<script>
+function verReporte(personaId) {
+    if (!personaId) { document.getElementById('reporte-panel').innerHTML = ''; return; }
+    window.location.href = '/reports/rendimiento/' + personaId;
+}
+</script>
 </x-layout>

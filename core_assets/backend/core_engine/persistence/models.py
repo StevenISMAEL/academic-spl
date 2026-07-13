@@ -107,3 +107,40 @@ class MatriculaDB(Base):
 
     persona = relationship("PersonaDB", back_populates="matriculas")
     curso = relationship("CursoDB", back_populates="matriculas")
+
+
+class HorarioDB(Base):
+    """Tabla de horarios de clases (feature: schedule)."""
+    __tablename__ = "horarios"
+
+    id         = Column(String, primary_key=True, index=True)
+    curso_id   = Column(String, ForeignKey("cursos.id"), nullable=False)
+    dia_semana = Column(String, nullable=False)   # Lunes, Martes, ... Viernes
+    hora_inicio = Column(String, nullable=False)  # "HH:MM"
+    hora_fin    = Column(String, nullable=False)  # "HH:MM"
+    aula        = Column(String, nullable=True)
+
+    curso = relationship("CursoDB")
+
+
+class CertificadoDB(Base):
+    """Tabla de certificados de aprobacion (feature: certificates).
+
+    Cada registro representa un intento de certificacion:
+    - estado 'emitido'   → el estudiante cumplió nota y asistencia
+    - estado 'rechazado' → no cumplió algún requisito (motivo en motivo_rechazo)
+    """
+    __tablename__ = "certificados"
+
+    id              = Column(String, primary_key=True, index=True)
+    persona_id      = Column(String, ForeignKey("personas.id"), nullable=False)
+    curso_id        = Column(String, ForeignKey("cursos.id"),   nullable=False)
+    fecha_emision   = Column(String, nullable=False)   # ISO 8601
+    nota_final      = Column(Float,  nullable=True)    # None si no hay nota registrada
+    asistencia_pct  = Column(Float,  nullable=True)    # None si no hay asistencia registrada
+    estado          = Column(String, nullable=False)   # "emitido" | "rechazado"
+    motivo_rechazo  = Column(Text,   nullable=True)    # null si estado == "emitido"
+
+    persona = relationship("PersonaDB")
+    curso   = relationship("CursoDB")
+
