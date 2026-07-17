@@ -14,6 +14,14 @@ Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
+Route::get('/debug-features', function () {
+    return [
+        'is_active' => \App\Core\Services\FeatureGate::isActive('auditing'),
+        'all_features' => \App\Core\Services\FeatureGate::activeFeatures(),
+        'product' => \App\Core\Services\FeatureGate::productInfo()
+    ];
+});
+
 Route::middleware('auth')->get('/dashboard', function () {
     return view('dashboard');
 })->name('dashboard');
@@ -32,3 +40,4 @@ require base_path('app/Modules/EnrollmentModule/routes.php');
 require base_path('app/Modules/ScheduleModule/routes.php');
 require base_path('app/Modules/ReportsModule/routes.php');
 require base_path('app/Modules/CertificatesModule/routes.php');
+require base_path('app/Modules/AuditingModule/routes.php');

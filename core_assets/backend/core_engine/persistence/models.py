@@ -11,19 +11,22 @@ Separación de responsabilidades:
 
 Los Repositories son los responsables de convertir entre ambas capas.
 
-REGLA DE ORO: Este archivo NO menciona ningún producto. Las tablas son
-genéricas para cualquier producto académico derivado de la línea.
+REGLA DE ORO: Este archivo NO menciona ningún producto y NO lee 
+configuración. Declara TODOS los modelos posibles estáticamente.
+El encargado de decidir qué tablas crear es `migrate.py`.
 """
 from __future__ import annotations
 
 from sqlalchemy import Boolean, Column, Float, ForeignKey, String, Text
 from sqlalchemy.orm import DeclarativeBase, relationship
 
-
 class Base(DeclarativeBase):
     """Base declarativa compartida por todos los modelos del Core."""
     pass
 
+# =====================================================================
+#                        MODELOS CORE
+# =====================================================================
 
 class PersonaDB(Base):
     """Tabla de personas (estudiantes, docentes, etc.) — genérica."""
@@ -34,7 +37,7 @@ class PersonaDB(Base):
     apellidos = Column(String, nullable=False)
     documento_identidad = Column(String, nullable=False, unique=True)
 
-    # Relaciones inversas (opcionales para queries avanzadas)
+    # Relaciones inversas hacia módulos opcionales
     evaluaciones = relationship("EvaluacionDB", back_populates="persona")
     asistencias = relationship("AsistenciaDB", back_populates="persona")
     matriculas = relationship("MatriculaDB", back_populates="persona")
@@ -61,10 +64,16 @@ class CursoDB(Base):
     periodo_id = Column(String, ForeignKey("periodos.id"), nullable=False)
 
     periodo = relationship("PeriodoDB", back_populates="cursos")
+    
+    # Relaciones inversas hacia módulos opcionales
     evaluaciones = relationship("EvaluacionDB", back_populates="curso")
     asistencias = relationship("AsistenciaDB", back_populates="curso")
     matriculas = relationship("MatriculaDB", back_populates="curso")
 
+
+# =====================================================================
+#                 MODELOS OPCIONALES (FEATURES)
+# =====================================================================
 
 class EvaluacionDB(Base):
     """Tabla de evaluaciones/calificaciones (feature: grading)."""
@@ -124,12 +133,7 @@ class HorarioDB(Base):
 
 
 class CertificadoDB(Base):
-    """Tabla de certificados de aprobacion (feature: certificates).
-
-    Cada registro representa un intento de certificacion:
-    - estado 'emitido'   → el estudiante cumplió nota y asistencia
-    - estado 'rechazado' → no cumplió algún requisito (motivo en motivo_rechazo)
-    """
+    """Tabla de certificados de aprobacion (feature: certificates)."""
     __tablename__ = "certificados"
 
     id              = Column(String, primary_key=True, index=True)
@@ -144,3 +148,15 @@ class CertificadoDB(Base):
     persona = relationship("PersonaDB")
     curso   = relationship("CursoDB")
 
+
+class AuditoriaDB(Base):
+    """Tabla de logs de auditoría (feature: auditing)."""
+    __tablename__ = "auditoria"
+
+    id = Column(String, primary_key=True, index=True)
+    usuario_id = Column(String, nullable=False, index=True)
+    accion = Column(String, nullable=False)        # CREATE, UPDATE, DELETE
+    entidad = Column(String, nullable=False)       # ej. 'personas', 'cursos'
+    entidad_id = Column(String, nullable=False)    # ID del registro afectado
+    fecha_hora = Column(String, nullable=False)    # ISO 8601
+    detalles = Column(Text, nullable=True)         # JSON con diffs o payload

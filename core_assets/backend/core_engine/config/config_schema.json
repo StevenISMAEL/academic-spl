@@ -50,7 +50,7 @@
         "passing_grade": {
           "type": "number",
           "minimum": 0,
-          "maximum": 10,
+          "maximum": 100,
           "description": "Nota mínima para aprobar (CA-04 GradePassingChecker). Variación paramétrica: 7.0 en colegios, 6.0 en algunas universidades."
         },
         "attendance_min_percentage": {

@@ -65,6 +65,10 @@ from core_assets.backend.core_engine.features.reports.router import (
 from core_assets.backend.core_engine.features.certificates.router import (
     router as certificates_router,
 )
+from core_assets.backend.core_engine.features.auditing.router import (
+    router as auditing_router,
+)
+
 
 # Catálogo de Core Assets opcionales (features).
 # Agregar un nuevo optional feature consiste en: crear su router y
@@ -76,6 +80,7 @@ FEATURE_REGISTRY = {
     "schedule":     schedule_router,
     "reports":      reports_router,
     "certificates": certificates_router,
+    "auditing":     auditing_router,
 }
 
 # Core Services siempre presentes — son Commonality, no variabilidad.

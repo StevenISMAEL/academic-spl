@@ -24,6 +24,7 @@ class AppServiceProvider extends ServiceProvider
                 'schedule.index' => $base . '/ScheduleModule/resources/views/index.blade.php',
                 'reports.index' => $base . '/ReportsModule/resources/views/index.blade.php',
                 'certificates.index' => $base . '/CertificatesModule/resources/views/index.blade.php',
+                'modules.auditing.index' => $base . '/AuditingModule/resources/views/index.blade.php',
             ];
 
             return new class($finder, $mappings) implements ViewFinderInterface {

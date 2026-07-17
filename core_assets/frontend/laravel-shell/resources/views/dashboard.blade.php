@@ -26,4 +26,11 @@
             <p>Aquí vive el módulo de inscripción por créditos.</p>
         </section>
     @endfeature
+
+    @feature('auditing')
+        <section>
+            <h2><a href="{{ route('auditing.index') }}" class="text-blue-600 hover:underline">Auditoría</a></h2>
+            <p>Módulo de auditoría de acciones del sistema.</p>
+        </section>
+    @endfeature
 </x-layout>

@@ -24,6 +24,7 @@ core_assets/frontend/laravel-shell/.env
 # --- Bases de datos locales de cada producto derivado ---
 products/**/*.sqlite
 products/**/*.db
+derived_products/
 
 # --- Editor / Sistema operativo ---
 .vscode/

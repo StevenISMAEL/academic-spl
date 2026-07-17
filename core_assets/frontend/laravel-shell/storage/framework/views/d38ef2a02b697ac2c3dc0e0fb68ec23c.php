@@ -177,81 +177,85 @@
             <div class="logo-section">
                 <h1>Academic SPL</h1>
                 <span class="product-badge">
-                    {{ \App\Core\Services\FeatureGate::productInfo()['product'] ?? 'Producto' }}
+                    <?php echo e(\App\Core\Services\FeatureGate::productInfo()['product'] ?? 'Producto'); ?>
+
                 </span>
             </div>
             
             <nav>
-                {{-- Core Services: Siempre visibles --}}
-                <a href="/personas" class="{{ request()->is('personas*') ? 'active' : '' }}">Personas</a>
-                <a href="/cursos" class="{{ request()->is('cursos*') ? 'active' : '' }}">Cursos</a>
-                <a href="/periodos" class="{{ request()->is('periodos*') ? 'active' : '' }}">Períodos</a>
+                
+                <a href="/personas" class="<?php echo e(request()->is('personas*') ? 'active' : ''); ?>">Personas</a>
+                <a href="/cursos" class="<?php echo e(request()->is('cursos*') ? 'active' : ''); ?>">Cursos</a>
+                <a href="/periodos" class="<?php echo e(request()->is('periodos*') ? 'active' : ''); ?>">Períodos</a>
 
-                {{-- Optional Features: Condicionales a la configuración del producto activo --}}
-                @feature('grading')
-                    <a href="/grading" class="{{ request()->is('grading*') ? 'active' : '' }}">Calificaciones</a>
-                @endfeature
+                
+                <?php if (\App\Core\Services\FeatureGate::isActive('grading')): ?>
+                    <a href="/grading" class="<?php echo e(request()->is('grading*') ? 'active' : ''); ?>">Calificaciones</a>
+                <?php endif; ?>
 
-                @feature('attendance')
-                    <a href="/attendance" class="{{ request()->is('attendance*') ? 'active' : '' }}">Asistencia</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('attendance')): ?>
+                    <a href="/attendance" class="<?php echo e(request()->is('attendance*') ? 'active' : ''); ?>">Asistencia</a>
+                <?php endif; ?>
 
-                @feature('enrollment')
-                    <a href="/enrollment" class="{{ request()->is('enrollment*') ? 'active' : '' }}">Matrículas</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('enrollment')): ?>
+                    <a href="/enrollment" class="<?php echo e(request()->is('enrollment*') ? 'active' : ''); ?>">Matrículas</a>
+                <?php endif; ?>
 
-                @feature('schedule')
-                    <a href="/schedule" class="{{ request()->is('schedule*') ? 'active' : '' }}">Horarios</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('schedule')): ?>
+                    <a href="/schedule" class="<?php echo e(request()->is('schedule*') ? 'active' : ''); ?>">Horarios</a>
+                <?php endif; ?>
 
-                @feature('reports')
-                    <a href="/reports" class="{{ request()->is('reports*') ? 'active' : '' }}">Reportes</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('reports')): ?>
+                    <a href="/reports" class="<?php echo e(request()->is('reports*') ? 'active' : ''); ?>">Reportes</a>
+                <?php endif; ?>
 
-                @feature('certificates')
-                    <a href="/certificates" class="{{ request()->is('certificates*') ? 'active' : '' }}">Certificados</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('certificates')): ?>
+                    <a href="/certificates" class="<?php echo e(request()->is('certificates*') ? 'active' : ''); ?>">Certificados</a>
+                <?php endif; ?>
 
-                @feature('auditing')
-                    <a href="/auditing" class="{{ request()->is('auditing*') ? 'active' : '' }}">Auditoría</a>
-                @endfeature
+                <?php if (\App\Core\Services\FeatureGate::isActive('auditing')): ?>
+                    <a href="/auditing" class="<?php echo e(request()->is('auditing*') ? 'active' : ''); ?>">Auditoría</a>
+                <?php endif; ?>
 
-                @auth
-                    <form action="{{ route('logout') }}" method="POST" style="display: inline; margin-left: 1rem;">
-                        @csrf
+                <?php if(auth()->guard()->check()): ?>
+                    <form action="<?php echo e(route('logout')); ?>" method="POST" style="display: inline; margin-left: 1rem;">
+                        <?php echo csrf_field(); ?>
                         <button type="submit" class="logout-btn">Salir</button>
                     </form>
-                @endauth
+                <?php endif; ?>
             </nav>
         </div>
     </header>
 
     <main>
-        {{-- Flash Messages --}}
-        @if(session('success'))
+        
+        <?php if(session('success')): ?>
             <div class="alert alert-success">
-                <span>✅</span> {{ session('success') }}
-            </div>
-        @endif
+                <span>✅</span> <?php echo e(session('success')); ?>
 
-        @if($errors->any())
+            </div>
+        <?php endif; ?>
+
+        <?php if($errors->any()): ?>
             <div class="alert alert-danger">
                 <span>⚠️</span>
                 <ul style="margin: 0; padding-left: 1.25rem;">
-                    @foreach($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                    @endforeach
+                    <?php $__currentLoopData = $errors->all(); $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $error): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                        <li><?php echo e($error); ?></li>
+                    <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                 </ul>
             </div>
-        @endif
+        <?php endif; ?>
 
         <div class="card">
-            {{ $slot }}
+            <?php echo e($slot); ?>
+
         </div>
     </main>
 
     <footer>
-        &copy; {{ date('Y') }} Academic SPL Core Assets. Todos los derechos reservados.
+        &copy; <?php echo e(date('Y')); ?> Academic SPL Core Assets. Todos los derechos reservados.
     </footer>
 </body>
 </html>
+<?php /**PATH D:\Octavo\FABRICA\ProyectoFinal\academic-spl\core_assets\frontend\laravel-shell\resources\views/components/layout.blade.php ENDPATH**/ ?>
