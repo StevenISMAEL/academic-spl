@@ -58,42 +58,24 @@ jobs:
     - name: Install PHP dependencies (Composer)
       run: |
         mkdir -p core_assets/frontend/laravel-shell/storage/framework/views
-        cp -f core_assets/frontend/laravel-shell/.env.example core_assets/frontend/laravel-shell/.env || true
         composer install \
           --no-interaction \
           --prefer-dist \
           --working-dir=core_assets/frontend/laravel-shell
+
     - name: Create Laravel .env for Testing
       working-directory: core_assets/frontend/laravel-shell
       run: |
-        touch .env
         echo "APP_KEY=${{ secrets.LARAVEL_APP_KEY }}" > .env
         echo "APP_ENV=testing" >> .env
         echo "APP_DEBUG=true" >> .env
 
-    - name: Create Laravel .env for Testing
-      run: |
-        echo "APP_KEY=${{ secrets.LARAVEL_APP_KEY }}" > core_assets/frontend/laravel-shell/.env
-        echo "APP_ENV=testing" >> core_assets/frontend/laravel-shell/.env
-        echo "APP_DEBUG=true" >> core_assets/frontend/laravel-shell/.env
-      working-directory: core_assets/frontend/laravel-shell
-
-    - name: Prepare Laravel .env for Testing
-      run: |
-        echo "APP_KEY=${{ secrets.LARAVEL_APP_KEY }}" >> core_assets/frontend/laravel-shell/.env
-        echo "APP_ENV=testing" >> core_assets/frontend/laravel-shell/.env
-        echo "APP_DEBUG=true" >> core_assets/frontend/laravel-shell/.env
-      working-directory: core_assets/frontend/laravel-shell
-
-
     - name: Run PHPUnit with Clover Coverage
-      run: |
-        cd core_assets/frontend/laravel-shell
-        # --coverage-clover genera el reporte que SonarCloud necesita
-        # Se usa Xdebug (configurado en setup-php) para instrumentar el código
-        vendor/bin/phpunit --coverage-clover clover.xml
+      working-directory: core_assets/frontend/laravel-shell
+      run: vendor/bin/phpunit --coverage-clover clover.xml
       env:
         XDEBUG_MODE: coverage
+
 
     - name: Clear Laravel view cache before SonarCloud
       run: |
