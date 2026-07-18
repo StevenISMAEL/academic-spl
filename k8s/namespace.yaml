@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: academic-spl
+  labels:
+    app: academic-spl
+    env: production

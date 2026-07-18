@@ -1,0 +1,25 @@
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: academic-spl-hpa
+  namespace: academic-spl
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: academic-spl-deployment
+  minReplicas: 1
+  maxReplicas: 3  # Máximo 3 réplicas para Cloud SQL db-f1-micro (~25 conexiones)
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70  # Escala si el uso de CPU supera el 70%
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80  # También escala por memoria (relevante en Python)

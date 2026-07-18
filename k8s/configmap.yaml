@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: academic-spl-config
+  namespace: academic-spl
+data:
+  # Variables de entorno no sensibles de la aplicación
+  LOG_LEVEL: "INFO"
+  APP_ENV: "production"
+  # Puerto en el que corre FastAPI/uvicorn
+  APP_PORT: "8000"
+  # Nombre de la base de datos en Cloud SQL
+  DB_NAME: "academic_spl"

@@ -1,9 +1,16 @@
 # --- Python (backend FastAPI) ---
 venv/
+.venv/
 __pycache__/
 *.pyc
 .pytest_cache/
+coverage.xml
 
+# --- Terraform ---
+.terraform/
+.terraform.lock.hcl
+*.tfstate
+*.tfstate.backup
 # --- Variables de entorno y secretos: NUNCA se commitean ---
 .env
 .env.*

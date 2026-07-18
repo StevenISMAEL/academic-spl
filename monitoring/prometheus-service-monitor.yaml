@@ -1,0 +1,50 @@
+# =============================================================================
+# ServiceMonitor — Scrape de métricas de FastAPI (academic-spl)
+# =============================================================================
+# Diferencia con PetClinic: FastAPI expone /metrics con prometheus-fastapi-instrumentator
+# en lugar de /actuator/prometheus de Spring Boot Actuator.
+#
+# REQUISITOS para que funcione:
+#   1. Añadir a requirements.txt: prometheus-fastapi-instrumentator
+#   2. En main FastAPI app:
+#      from prometheus_fastapi_instrumentator import Instrumentator
+#      Instrumentator().instrument(app).expose(app)
+#   3. El Service debe tener label "app: academic-spl" en metadata.labels
+#   4. El Service debe tener un puerto con nombre "http"
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: academic-spl-monitor
+  namespace: observability
+  labels:
+    app: academic-spl
+    release: prometheus
+spec:
+  # Buscar Services en estos namespaces
+  namespaceSelector:
+    matchNames:
+      - staging
+      - academic-spl
+
+  # Seleccionar Services que tengan este label
+  selector:
+    matchLabels:
+      app: academic-spl
+
+  # Configuración de scraping
+  endpoints:
+    - port: http
+      path: /metrics          # FastAPI expone en /metrics (no /actuator/prometheus)
+      interval: 15s
+      scrapeTimeout: 10s
+      scheme: http
+      relabelings:
+        - sourceLabels: [__meta_kubernetes_namespace]
+          targetLabel: namespace
+        - sourceLabels: [__meta_kubernetes_pod_name]
+          targetLabel: pod
+        - sourceLabels: [__meta_kubernetes_service_name]
+          targetLabel: service
+        - sourceLabels: [__meta_kubernetes_pod_node_name]
+          targetLabel: node

@@ -1,0 +1,153 @@
+# =============================================================================
+# PrometheusRule — Alertas y SLOs para academic-spl (Python/FastAPI)
+# SLI/SLO: 99.9% de disponibilidad (error budget: 0.1%)
+#
+# Diferencia con PetClinic: las métricas vienen de prometheus-fastapi-instrumentator
+# (http_requests_total, http_request_duration_seconds) en lugar de
+# Spring Boot Actuator (http_server_requests_seconds)
+# =============================================================================
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: academic-spl-alerts
+  namespace: observability
+  labels:
+    app: academic-spl
+    release: prometheus
+spec:
+  groups:
+    # =========================================================================
+    # GRUPO 1: SLO — Disponibilidad 99.9%
+    # =========================================================================
+    - name: academic-spl-slo
+      rules:
+        # SLI: Tasa de éxito de requests HTTP (código < 500)
+        # prometheus-fastapi-instrumentator expone http_requests_total con labels:
+        # method, handler, status (código HTTP)
+        - record: academic_spl:http_request_success_rate:5m
+          expr: |
+            1 - (
+              sum(rate(http_requests_total{namespace=~"staging|academic-spl", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{namespace=~"staging|academic-spl"}[5m]))
+            )
+
+        # SLI: Latencia P99 de requests HTTP
+        - record: academic_spl:http_request_latency_p99:5m
+          expr: |
+            histogram_quantile(0.99,
+              sum(rate(http_request_duration_seconds_bucket{namespace=~"staging|academic-spl"}[5m])) by (le)
+            )
+
+        # ALERTA: SLO de disponibilidad violado (< 99.9%)
+        - alert: AcademicSPLSLOAvailabilityBreach
+          expr: academic_spl:http_request_success_rate:5m < 0.999
+          for: 5m
+          labels:
+            severity: critical
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "SLO de disponibilidad violado (< 99.9%)"
+            description: |
+              La tasa de éxito de academic-spl ha caído a {{ $value | humanizePercentage }}.
+              El SLO definido es 99.9%. Error budget consumido.
+
+        # ALERTA: Latencia P99 alta (> 2 segundos)
+        - alert: AcademicSPLHighLatencyP99
+          expr: academic_spl:http_request_latency_p99:5m > 2
+          for: 5m
+          labels:
+            severity: warning
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "Latencia P99 elevada (> 2s)"
+            description: |
+              La latencia P99 de academic-spl es {{ $value | humanizeDuration }}.
+              Esto impacta la experiencia del usuario.
+
+        # ALERTA: Error Rate HTTP 5xx > 5%
+        - alert: AcademicSPLHighErrorRate
+          expr: |
+            (
+              sum(rate(http_requests_total{namespace=~"staging|academic-spl", status=~"5.."}[5m]))
+              /
+              sum(rate(http_requests_total{namespace=~"staging|academic-spl"}[5m]))
+            ) > 0.05
+          for: 2m
+          labels:
+            severity: critical
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "Error Rate HTTP 5xx superior al 5%"
+            description: |
+              El {{ $value | humanizePercentage }} de las requests están retornando errores 5xx.
+              Umbral: 5%. Investigar inmediatamente.
+
+    # =========================================================================
+    # GRUPO 2: Alertas de Infraestructura
+    # =========================================================================
+    - name: academic-spl-infrastructure
+      rules:
+        # ALERTA: Pod crasheando repetidamente
+        - alert: AcademicSPLPodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace=~"staging|academic-spl",
+              pod=~"academic-spl.*"
+            }[15m]) > 0
+          for: 5m
+          labels:
+            severity: critical
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "Pod de academic-spl reiniciándose constantemente"
+            description: |
+              El pod {{ $labels.pod }} en el namespace {{ $labels.namespace }}
+              se ha reiniciado en los últimos 15 minutos.
+
+        # ALERTA: Pod no está Ready
+        - alert: AcademicSPLPodNotReady
+          expr: |
+            kube_pod_status_ready{
+              namespace=~"staging|academic-spl",
+              pod=~"academic-spl.*",
+              condition="true"
+            } == 0
+          for: 10m
+          labels:
+            severity: warning
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "Pod de academic-spl no está listo"
+            description: |
+              El pod {{ $labels.pod }} en {{ $labels.namespace }}
+              lleva más de 10 minutos sin estar Ready.
+
+        # ALERTA: Uso alto de memoria del proceso Python
+        # (Python no tiene JVM heap como Spring Boot, pero sí uso de RAM de proceso)
+        - alert: AcademicSPLHighMemoryUsage
+          expr: |
+            container_memory_working_set_bytes{
+              namespace=~"staging|academic-spl",
+              pod=~"academic-spl.*",
+              container="academic-spl"
+            } / container_spec_memory_limit_bytes{
+              namespace=~"staging|academic-spl",
+              pod=~"academic-spl.*",
+              container="academic-spl"
+            } > 0.85
+          for: 5m
+          labels:
+            severity: warning
+            team: devops
+            project: academic-spl
+          annotations:
+            summary: "Uso de memoria del proceso Python > 85% del límite"
+            description: |
+              El proceso Python de academic-spl está usando {{ $value | humanizePercentage }}
+              del límite de memoria del contenedor.

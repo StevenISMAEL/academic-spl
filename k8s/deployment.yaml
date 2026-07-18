@@ -1,0 +1,86 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: academic-spl-deployment
+  namespace: academic-spl
+  labels:
+    app: academic-spl
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: academic-spl
+  template:
+    metadata:
+      labels:
+        app: academic-spl
+    spec:
+      containers:
+      - name: academic-spl
+
+        # La imagen se actualiza automáticamente por el pipeline CI/CD
+        # ghcr.io/<owner>/academic-spl/<product>:latest
+        image: ghcr.io/stevenismael/academic-spl/colegio-norte:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000  # FastAPI/uvicorn (vs 8080 de Spring Boot)
+
+        # Variables de entorno de la aplicación FastAPI
+        env:
+        - name: LOG_LEVEL
+          valueFrom:
+            configMapKeyRef:
+              name: academic-spl-config
+              key: LOG_LEVEL
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: academic-spl-config
+              key: APP_ENV
+
+        # Credenciales de base de datos desde el Secret
+        - name: DATABASE_URL
+          valueFrom:
+            secretKeyRef:
+              name: academic-spl-db-secret
+              key: DATABASE_URL
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: academic-spl-db-secret
+              key: DB_USER
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: academic-spl-db-secret
+              key: DB_PASSWORD
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+        # Probes adaptados a FastAPI (uvicorn no tiene /actuator)
+        # El endpoint /health lo expone FastAPI directamente
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          failureThreshold: 3
