@@ -44,7 +44,7 @@
                                         {{-- PATCH status --}}
                                         <form action="/enrollment/{{ $m['id'] }}/status" method="POST" style="display: inline-flex; gap: 0.5rem; align-items: center;">
                                             @csrf @method('PATCH')
-                                            <select name="estado" style="font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.25rem 0.5rem;">
+                                            <select name="estado" aria-label="Cambiar estado" style="font-size: 0.75rem; border: 1px solid #d1d5db; border-radius: 0.25rem; padding: 0.25rem 0.5rem;">
                                                 <option value="inscrito">inscrito</option>
                                                 <option value="retirado">retirado</option>
                                                 <option value="aprobado">aprobado</option>

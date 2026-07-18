@@ -28,7 +28,7 @@
 
 {{-- Selector de estudiante --}}
 <div style="display:flex;align-items:center;gap:1rem;margin-bottom:1.5rem;flex-wrap:wrap;">
-    <label style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">Ver reporte de:</label>
+    <label for="persona-select" style="font-weight:600;font-size:0.9rem;color:var(--text-dark);">Ver reporte de:</label>
     <select id="persona-select" onchange="verReporte(this.value)"
             style="padding:.5rem 1rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;background:#fff;cursor:pointer;min-width:220px;">
         <option value="">— Seleccionar estudiante —</option>

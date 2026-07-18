@@ -23,8 +23,8 @@
     <form method="POST" action="{{ route('schedule.store') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:.75rem;align-items:end;">
         @csrf
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Curso *</label>
-            <select name="curso_id" required style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
+            <label for="curso_id" style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Curso *</label>
+            <select id="curso_id" name="curso_id" required style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
                 <option value="">— Seleccionar —</option>
                 @foreach($cursos as $c)
                     <option value="{{ $c['id'] }}">{{ $c['nombre'] }}</option>
@@ -32,8 +32,8 @@
             </select>
         </div>
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Día *</label>
-            <select name="dia_semana" required style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
+            <label for="dia_semana" style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Día *</label>
+            <select id="dia_semana" name="dia_semana" required style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
                 <option value="">— Seleccionar —</option>
                 @foreach($diasValidos as $dia)
                     <option value="{{ $dia }}">{{ $dia }}</option>
@@ -41,18 +41,18 @@
             </select>
         </div>
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Hora Inicio *</label>
-            <input type="time" name="hora_inicio" required
+            <label for="hora_inicio" style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Hora Inicio *</label>
+            <input id="hora_inicio" type="time" name="hora_inicio" required
                    style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
         </div>
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Hora Fin *</label>
-            <input type="time" name="hora_fin" required
+            <label for="hora_fin" style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Hora Fin *</label>
+            <input id="hora_fin" type="time" name="hora_fin" required
                    style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
         </div>
         <div>
-            <label style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Aula</label>
-            <input type="text" name="aula" placeholder="Ej: A-101"
+            <label for="aula" style="display:block;font-size:.8rem;font-weight:600;color:#374151;margin-bottom:.375rem;">Aula</label>
+            <input id="aula" type="text" name="aula" placeholder="Ej: A-101"
                    style="width:100%;padding:.5rem;border:1px solid #cbd5e1;border-radius:.375rem;font-size:.875rem;box-sizing:border-box;">
         </div>
         <div style="display:flex;align-items:flex-end;">

@@ -27,6 +27,9 @@ def load_schema() -> Dict[str, Any]:
         return json.load(f)
 
 
+from core_assets.backend.core_engine.persistence.path_utils import safe_resolve_path
+
+
 def load_yaml(path: str | Path) -> Dict[str, Any]:
     with open(path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f)
@@ -36,9 +39,12 @@ def validate_product_config(path: str | Path) -> Dict[str, Any]:
     """Valida un product_config.yaml contra el esquema formal.
 
     Devuelve la configuración ya cargada si es válida.
-    Lanza ValueError con un mensaje claro si no lo es.
+    Lanza ValueError con un mensaje claro si no lo es o si la ruta es inválida.
     """
-    config = load_yaml(path)
+    # --- SEGURIDAD: Validar ruta para prevenir Path Traversal (CWE-22) ---
+    safe_path = safe_resolve_path(str(path))
+    
+    config = load_yaml(safe_path)
     schema = load_schema()
     try:
         validate(instance=config, schema=schema)

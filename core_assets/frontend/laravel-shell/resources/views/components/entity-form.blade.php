@@ -30,10 +30,12 @@
                 $step = data_get($field, 'step');
                 $placeholder = data_get($field, 'placeholder', '');
                 $options = data_get($field, 'options', []);
+                // Generate a unique ID to prevent WCAG duplicate ID violations
+                $uniqueId = 'field-' . $name . '-' . uniqid();
             @endphp
 
             <div class="flex flex-col">
-                <label for="field-{{ $name }}" class="text-sm font-semibold text-gray-700 mb-1">
+                <label for="{{ $uniqueId }}" class="text-sm font-semibold text-gray-700 mb-1">
                     {{ $label }}
                     @if($required)
                         <span class="text-red-500">*</span>
@@ -43,7 +45,7 @@
                 @if($type === 'select')
                     <select 
                         name="{{ $name }}" 
-                        id="field-{{ $name }}"
+                        id="{{ $uniqueId }}"
                         {{ $required ? 'required' : '' }}
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     >
@@ -80,14 +82,14 @@
                         <input 
                             type="checkbox" 
                             name="{{ $name }}" 
-                            id="field-{{ $name }}"
+                            id="{{ $uniqueId }}"
                             value="1"
                             {{ $value ? 'checked' : '' }}
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         >
                         {{-- WCAG2-A: usar <label for="..."> en lugar de <span> para asociar
                              el texto al input y que los lectores de pantalla lo anuncien. --}}
-                        <label for="field-{{ $name }}" class="ml-2 text-sm text-gray-600 cursor-pointer">
+                        <label for="{{ $uniqueId }}" class="ml-2 text-sm text-gray-600 cursor-pointer">
                             {{ $label }}
                         </label>
                     </div>
@@ -95,7 +97,7 @@
                     <input 
                         type="{{ $type }}" 
                         name="{{ $name }}" 
-                        id="field-{{ $name }}"
+                        id="{{ $uniqueId }}"
                         value="{{ $value }}"
                         placeholder="{{ $placeholder }}"
                         {{ $required ? 'required' : '' }}
