@@ -1,0 +1,32 @@
+# Fixture de test — Producto tipo COLEGIO
+# Usado exclusivamente por tests_core/conftest.py
+# Refleja el comportamiento esperado por test_variability.py:
+#   - attendance: true  (activo)
+#   - schedule: false   (inactivo)
+#   - certificates: false (inactivo)
+#   - evaluation_scale: literal
+#   - passing_grade: 7.0
+
+metadata:
+  product_name: Colegio Básico (Test Fixture)
+  product_type: colegio
+
+features:
+  grading: true
+  enrollment: true
+  schedule: false
+  certificates: false
+  attendance: true
+  reports: false
+  auditing: false
+
+academic_settings:
+  evaluation_scale: literal
+  grading_max_value: 10
+  passing_grade: 7.0
+  attendance_min_percentage: 80.0
+  max_enrollments_per_period: 12
+  periods_per_year: 3
+
+database:
+  path: ":memory:"

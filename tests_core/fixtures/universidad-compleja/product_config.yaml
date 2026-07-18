@@ -1,0 +1,32 @@
+# Fixture de test — Producto tipo UNIVERSIDAD
+# Usado exclusivamente por tests_core/conftest.py
+# Refleja el comportamiento esperado por test_variability.py:
+#   - attendance: false (inactivo)
+#   - schedule: true    (activo)
+#   - reports: true     (activo)
+#   - evaluation_scale: numeric
+#   - passing_grade: 6.0
+
+metadata:
+  product_name: Universidad Compleja (Test Fixture)
+  product_type: universidad
+
+features:
+  grading: true
+  enrollment: true
+  schedule: true
+  certificates: true
+  attendance: false
+  reports: true
+  auditing: false
+
+academic_settings:
+  evaluation_scale: numeric
+  grading_max_value: 10
+  passing_grade: 6.0
+  attendance_min_percentage: 60.0
+  max_enrollments_per_period: 8
+  periods_per_year: 2
+
+database:
+  path: ":memory:"

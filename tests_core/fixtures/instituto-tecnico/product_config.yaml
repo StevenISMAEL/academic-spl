@@ -1,0 +1,28 @@
+# Fixture de test — Producto tipo INSTITUTO TÉCNICO
+# Usado exclusivamente por tests_core/conftest.py
+# Refleja el comportamiento esperado por test_variability.py:
+#   - attendance: false (inactivo)
+
+metadata:
+  product_name: Instituto Técnico (Test Fixture)
+  product_type: instituto
+
+features:
+  grading: true
+  enrollment: true
+  schedule: true
+  certificates: false
+  attendance: false
+  reports: false
+  auditing: false
+
+academic_settings:
+  evaluation_scale: literal
+  grading_max_value: 10
+  passing_grade: 6.5
+  attendance_min_percentage: 70.0
+  max_enrollments_per_period: 6
+  periods_per_year: 4
+
+database:
+  path: ":memory:"
