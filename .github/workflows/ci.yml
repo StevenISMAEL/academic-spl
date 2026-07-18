@@ -63,6 +63,11 @@ jobs:
           --no-interaction \
           --prefer-dist \
           --working-dir=core_assets/frontend/laravel-shell
+    - name: Prepare Laravel .env for Testing
+      run: |
+        cp core_assets/frontend/laravel-shell/.env.testing core_assets/frontend/laravel-shell/.env
+        php artisan key:generate --env=testing --force
+      working-directory: core_assets/frontend/laravel-shell
 
     - name: Run PHPUnit with Clover Coverage
       run: |
