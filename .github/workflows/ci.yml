@@ -56,7 +56,7 @@ jobs:
           -Dsonar.projectKey=StevenISMAEL_academic-spl
           -Dsonar.organization=stevenismael
           -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.sources=core_assets,derived_products
+          -Dsonar.sources=core_assets
           -Dsonar.tests=tests_core
           -Dsonar.qualitygate.wait=true
 
