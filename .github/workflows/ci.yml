@@ -71,6 +71,11 @@ jobs:
       env:
         XDEBUG_MODE: coverage
 
+    - name: Clear Laravel view cache before SonarCloud
+      run: |
+        cd core_assets/frontend/laravel-shell
+        php artisan view:clear || rm -rf storage/framework/views/*.php
+
     # --- PASO DEVSECOPS: ANÁLISIS ESTÁTICO DE CALIDAD ---
     - name: SonarCloud Scan
       uses: SonarSource/sonarcloud-github-action@master
