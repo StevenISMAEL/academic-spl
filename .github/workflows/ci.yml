@@ -26,24 +26,50 @@ jobs:
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    # ─── PYTHON: Setup + Tests + Coverage ────────────────────────────────────────
     - name: Set up Python 3.11
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
         cache: 'pip'
 
-    - name: Install dependencies
+    - name: Install Python dependencies
       run: pip install --no-cache-dir -r requirements.txt
 
-    - name: Install test dependencies
+    - name: Install Python test dependencies
       run: pip install pytest pytest-cov
 
-    - name: Run Unit Tests (Core Assets)
+    - name: Run Unit Tests (Core Assets) with Coverage
       run: |
         pytest \
           --cov=core_assets \
           --cov-report=xml \
           --cov-report=term-missing
+
+    # ─── PHP: Setup + Tests + Coverage ───────────────────────────────────────────
+    - name: Set up PHP 8.3
+      uses: shivammathur/setup-php@v2
+      with:
+        php-version: '8.3'
+        extensions: pdo_sqlite, sqlite3
+        coverage: xdebug
+        tools: composer
+
+    - name: Install PHP dependencies (Composer)
+      run: |
+        composer install \
+          --no-interaction \
+          --prefer-dist \
+          --working-dir=core_assets/frontend/laravel-shell
+
+    - name: Run PHPUnit with Clover Coverage
+      run: |
+        cd core_assets/frontend/laravel-shell
+        # --coverage-clover genera el reporte que SonarCloud necesita
+        # Se usa Xdebug (configurado en setup-php) para instrumentar el código
+        vendor/bin/phpunit --coverage-clover clover.xml
+      env:
+        XDEBUG_MODE: coverage
 
     # --- PASO DEVSECOPS: ANÁLISIS ESTÁTICO DE CALIDAD ---
     - name: SonarCloud Scan
@@ -56,9 +82,13 @@ jobs:
           -Dsonar.projectKey=StevenISMAEL_academic-spl
           -Dsonar.organization=stevenismael
           -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.sources=core_assets
           -Dsonar.tests=tests_core
+          -Dsonar.exclusions=**/__pycache__/**,**/.venv/**,**/*.pyc,**/vendor/**,**/node_modules/**,**/public/build/**
+          -Dsonar.test.exclusions=**/tests/**,**/tests_core/**
           -Dsonar.qualitygate.wait=true
+
 
   # ===========================================================================
   # JOB 2: CONTAINERIZE & SECURITY SCAN

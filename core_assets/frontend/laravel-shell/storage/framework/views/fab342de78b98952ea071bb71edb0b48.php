@@ -1,25 +1,58 @@
-@props([
+<?php $attributes ??= new \Illuminate\View\ComponentAttributeBag;
+
+$__newAttributes = [];
+$__propNames = \Illuminate\View\ComponentAttributeBag::extractPropNames(([
     'fields' => [],
     'action' => '',
     'method' => 'POST',
     'submitLabel' => 'Enviar'
-])
+]));
 
-@php
+foreach ($attributes->all() as $__key => $__value) {
+    if (in_array($__key, $__propNames)) {
+        $$__key = $$__key ?? $__value;
+    } else {
+        $__newAttributes[$__key] = $__value;
+    }
+}
+
+$attributes = new \Illuminate\View\ComponentAttributeBag($__newAttributes);
+
+unset($__propNames);
+unset($__newAttributes);
+
+foreach (array_filter(([
+    'fields' => [],
+    'action' => '',
+    'method' => 'POST',
+    'submitLabel' => 'Enviar'
+]), 'is_string', ARRAY_FILTER_USE_KEY) as $__key => $__value) {
+    $$__key = $$__key ?? $__value;
+}
+
+$__defined_vars = get_defined_vars();
+
+foreach ($attributes->all() as $__key => $__value) {
+    if (array_key_exists($__key, $__defined_vars)) unset($$__key);
+}
+
+unset($__defined_vars, $__key, $__value); ?>
+
+<?php
     $realMethod = strtoupper($method);
     $formMethod = in_array($realMethod, ['GET', 'POST']) ? $realMethod : 'POST';
     $methodSpoof = in_array($realMethod, ['PUT', 'PATCH', 'DELETE']) ? $realMethod : null;
-@endphp
+?>
 
-<form action="{{ $action }}" method="{{ $formMethod }}" class="space-y-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
-    @csrf
-    @if($methodSpoof)
-        @method($methodSpoof)
-    @endif
+<form action="<?php echo e($action); ?>" method="<?php echo e($formMethod); ?>" class="space-y-6 bg-white p-6 rounded-lg border border-gray-200 shadow-sm">
+    <?php echo csrf_field(); ?>
+    <?php if($methodSpoof): ?>
+        <?php echo method_field($methodSpoof); ?>
+    <?php endif; ?>
 
     <div class="space-y-4">
-        @foreach($fields as $field)
-            @php
+        <?php $__currentLoopData = $fields; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $field): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+            <?php
                 $name = data_get($field, 'name');
                 $type = data_get($field, 'type', 'text');
                 $label = data_get($field, 'label', ucfirst($name));
@@ -30,26 +63,28 @@
                 $step = data_get($field, 'step');
                 $placeholder = data_get($field, 'placeholder', '');
                 $options = data_get($field, 'options', []);
-            @endphp
+            ?>
 
             <div class="flex flex-col">
-                <label for="field-{{ $name }}" class="text-sm font-semibold text-gray-700 mb-1">
-                    {{ $label }}
-                    @if($required)
+                <label for="field-<?php echo e($name); ?>" class="text-sm font-semibold text-gray-700 mb-1">
+                    <?php echo e($label); ?>
+
+                    <?php if($required): ?>
                         <span class="text-red-500">*</span>
-                    @endif
+                    <?php endif; ?>
                 </label>
 
-                @if($type === 'select')
+                <?php if($type === 'select'): ?>
                     <select 
-                        name="{{ $name }}" 
-                        id="field-{{ $name }}"
-                        {{ $required ? 'required' : '' }}
+                        name="<?php echo e($name); ?>" 
+                        id="field-<?php echo e($name); ?>"
+                        <?php echo e($required ? 'required' : ''); ?>
+
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     >
                         <option value="">Seleccione una opción...</option>
-                        @foreach($options as $key => $opt)
-                            @php
+                        <?php $__currentLoopData = $options; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $key => $opt): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                            <?php
                                 $val = (is_array($opt) || is_object($opt)) ? (data_get($opt, 'id') ?? data_get($opt, 'value')) : $key;
                                 
                                 // Resolve label
@@ -69,48 +104,54 @@
                                 if (is_numeric($key) && !(is_array($opt) || is_object($opt))) {
                                     $val = $opt;
                                 }
-                            @endphp
-                            <option value="{{ $val }}" {{ $value == $val ? 'selected' : '' }}>
-                                {{ $lbl }}
+                            ?>
+                            <option value="<?php echo e($val); ?>" <?php echo e($value == $val ? 'selected' : ''); ?>>
+                                <?php echo e($lbl); ?>
+
                             </option>
-                        @endforeach
+                        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
                     </select>
-                @elseif($type === 'checkbox')
+                <?php elseif($type === 'checkbox'): ?>
                     <div class="flex items-center">
                         <input 
                             type="checkbox" 
-                            name="{{ $name }}" 
-                            id="field-{{ $name }}"
+                            name="<?php echo e($name); ?>" 
+                            id="field-<?php echo e($name); ?>"
                             value="1"
-                            {{ $value ? 'checked' : '' }}
+                            <?php echo e($value ? 'checked' : ''); ?>
+
                             class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                         >
-                        {{-- WCAG2-A: usar <label for="..."> en lugar de <span> para asociar
-                             el texto al input y que los lectores de pantalla lo anuncien. --}}
-                        <label for="field-{{ $name }}" class="ml-2 text-sm text-gray-600 cursor-pointer">
-                            {{ $label }}
-                        </label>
+                        <span class="ml-2 text-sm text-gray-600"><?php echo e($label); ?></span>
                     </div>
-                @else
+                <?php else: ?>
                     <input 
-                        type="{{ $type }}" 
-                        name="{{ $name }}" 
-                        id="field-{{ $name }}"
-                        value="{{ $value }}"
-                        placeholder="{{ $placeholder }}"
-                        {{ $required ? 'required' : '' }}
-                        @if($min !== null) min="{{ $min }}" @endif
-                        @if($max !== null) max="{{ $max }}" @endif
-                        @if($step !== null) step="{{ $step }}" @endif
+                        type="<?php echo e($type); ?>" 
+                        name="<?php echo e($name); ?>" 
+                        id="field-<?php echo e($name); ?>"
+                        value="<?php echo e($value); ?>"
+                        placeholder="<?php echo e($placeholder); ?>"
+                        <?php echo e($required ? 'required' : ''); ?>
+
+                        <?php if($min !== null): ?> min="<?php echo e($min); ?>" <?php endif; ?>
+                        <?php if($max !== null): ?> max="<?php echo e($max); ?>" <?php endif; ?>
+                        <?php if($step !== null): ?> step="<?php echo e($step); ?>" <?php endif; ?>
                         class="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white"
                     >
-                @endif
+                <?php endif; ?>
 
-                @error($name)
-                    <span class="text-xs text-red-600 mt-1 font-medium">{{ $message }}</span>
-                @enderror
+                <?php $__errorArgs = [$name];
+$__bag = $errors->getBag($__errorArgs[1] ?? 'default');
+if ($__bag->has($__errorArgs[0])) :
+if (isset($message)) { $__messageOriginal = $message; }
+$message = $__bag->first($__errorArgs[0]); ?>
+                    <span class="text-xs text-red-600 mt-1 font-medium"><?php echo e($message); ?></span>
+                <?php unset($message);
+if (isset($__messageOriginal)) { $message = $__messageOriginal; }
+endif;
+unset($__errorArgs, $__bag); ?>
             </div>
-        @endforeach
+        <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
     </div>
 
     <div class="pt-4 border-t border-gray-100 flex justify-end">
@@ -118,7 +159,8 @@
             type="submit" 
             class="px-6 py-2.5 bg-blue-600 text-white font-medium text-sm leading-tight uppercase rounded shadow-md hover:bg-blue-700 hover:shadow-lg focus:bg-blue-700 focus:shadow-lg focus:outline-none focus:ring-0 active:bg-blue-800 active:shadow-lg transition duration-150 ease-in-out"
         >
-            {{ $submitLabel }}
+            <?php echo e($submitLabel); ?>
+
         </button>
     </div>
 </form>
@@ -148,3 +190,4 @@
     .bg-blue-600 { background-color: #2563eb; }
     .bg-blue-600:hover { background-color: #1d4ed8; }
 </style>
+<?php /**PATH C:\laragon\www\academic-spl\core_assets\frontend\laravel-shell\resources\views/components/entity-form.blade.php ENDPATH**/ ?>

@@ -20,14 +20,27 @@ import argparse
 import sys
 from pathlib import Path
 
+from core_assets.backend.core_engine.persistence.path_utils import (
+    ensure_parent_dir,
+    safe_resolve_path,
+)
+
 
 def run_migration(db_path: str, config_path: str) -> None:
     """Crea las tablas del esquema académico requeridas por el producto.
 
     Args:
-        db_path: Ruta al archivo SQLite.
-        config_path: Ruta al archivo product_config.yaml
+        db_path: Ruta al archivo SQLite. Se valida contra Path Traversal.
+        config_path: Ruta al archivo product_config.yaml. Se valida contra Path Traversal.
+
+    Raises:
+        ValueError: Si alguna ruta contiene componentes `..` que escapen del
+                    directorio del proyecto (protección contra CWE-22).
     """
+    # --- SEGURIDAD: Validar rutas recibidas desde CLI antes de cualquier acceso ---
+    # Protección contra Path Traversal (CWE-22 / OWASP A01).
+    safe_db_path: Path = safe_resolve_path(db_path)
+    safe_config_path: Path = safe_resolve_path(config_path)
     from sqlalchemy import create_engine
     
     # Importar FeatureFlags para conocer qué features están activos
@@ -39,7 +52,7 @@ def run_migration(db_path: str, config_path: str) -> None:
         HorarioDB, CertificadoDB, AuditoriaDB
     )
 
-    flags = FeatureFlags(config_path)
+    flags = FeatureFlags(str(safe_config_path))
 
     # Las tablas Core siempre se crean
     tablas_activas = [
@@ -64,19 +77,19 @@ def run_migration(db_path: str, config_path: str) -> None:
         if flags.is_active(feature_name):
             tablas_activas.extend(tables)
 
-    # Crear directorio padre si no existe
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
+    # Crear directorio padre si no existe (usa helper centralizado)
+    ensure_parent_dir(safe_db_path)
 
-    database_url = f"sqlite:///{db_path}"
+    database_url = f"sqlite:///{safe_db_path}"
     engine = create_engine(database_url, echo=True)
 
-    print(f"\n[MigrationRunner] Creando tablas en: {db_path}")
+    print(f"\n[MigrationRunner] Creando tablas en: {safe_db_path}")
     print(f"[MigrationRunner] Tablas a crear: {[t.name for t in tablas_activas]}")
     
     # Crear ÚNICAMENTE las tablas activas
     Base.metadata.create_all(bind=engine, tables=tablas_activas)
     
-    print(f"[MigrationRunner] OK - Migracion completada: {db_path}\n")
+    print(f"[MigrationRunner] OK - Migracion completada: {safe_db_path}\n")
     engine.dispose()
 
 
@@ -99,6 +112,10 @@ def main() -> None:
 
     try:
         run_migration(args.db_path, args.config_path)
+    except ValueError as exc:
+        # ValueError de safe_resolve_path → posible Path Traversal
+        print(f"[MigrationRunner] SEGURIDAD - Ruta rechazada: {exc}", file=sys.stderr)
+        sys.exit(2)
     except Exception as exc:
         print(f"[MigrationRunner] ERROR durante la migracion: {exc}", file=sys.stderr)
         sys.exit(1)

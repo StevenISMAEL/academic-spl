@@ -6,7 +6,8 @@
 >
     <testsuites>
         <testsuite name="Unit">
-            <directory>tests/Unit</directory>
+            <!-- Incluir Unit y todos sus subdirectorios (ej. Helpers/) -->
+            <directory suffix="Test.php">tests/Unit</directory>
         </testsuite>
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
@@ -17,6 +18,12 @@
             <directory>app</directory>
         </include>
     </source>
+    <!-- Reporte de cobertura para SonarCloud (sonar.php.coverage.reportPaths=clover.xml) -->
+    <coverage>
+        <report>
+            <clover outputFile="clover.xml"/>
+        </report>
+    </coverage>
     <php>
         <env name="APP_ENV" value="testing"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
@@ -34,3 +41,4 @@
         <env name="NIGHTWATCH_ENABLED" value="false"/>
     </php>
 </phpunit>
+

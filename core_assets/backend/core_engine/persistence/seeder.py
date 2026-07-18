@@ -54,19 +54,28 @@ from core_assets.backend.core_engine.persistence.models import (
     PersonaDB,
     PeriodoDB,
 )
+from core_assets.backend.core_engine.persistence.path_utils import (
+    ensure_parent_dir,
+    safe_resolve_path,
+)
 
 
 def _load_config(config_path: str) -> Dict[str, Any]:
-    path = Path(config_path)
-    if not path.exists():
+    # --- SEGURIDAD: validar ruta antes de abrir archivo ---
+    # Protección contra Path Traversal (CWE-22 / OWASP A01).
+    safe_path = safe_resolve_path(config_path)
+    if not safe_path.exists():
         raise FileNotFoundError(f"No se encontró el archivo de configuración: {config_path}")
-    with open(path, "r", encoding="utf-8") as f:
+    with open(safe_path, "r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
 
 
 def _get_session(db_path: str):
-    Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    engine = create_engine(f"sqlite:///{db_path}", echo=False)
+    # --- SEGURIDAD: validar ruta de BD antes de crear engine ---
+    # La ruta db_path puede venir del YAML (input externo); se valida igual.
+    safe_db = safe_resolve_path(db_path)
+    ensure_parent_dir(safe_db)
+    engine = create_engine(f"sqlite:///{safe_db}", echo=False)
     Base.metadata.create_all(engine)  # Asegura que las tablas existan
     SessionLocal = sessionmaker(bind=engine)
     return SessionLocal()
@@ -185,6 +194,10 @@ def main() -> None:
 
     try:
         run_seeder(args.config_path)
+    except ValueError as exc:
+        # ValueError de safe_resolve_path → posible Path Traversal
+        print(f"[Seeder] SEGURIDAD - Ruta rechazada: {exc}", file=sys.stderr)
+        sys.exit(2)
     except Exception as exc:
         print(f"[Seeder] ERROR durante la siembra: {exc}", file=sys.stderr)
         sys.exit(1)
