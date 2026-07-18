@@ -63,6 +63,12 @@ jobs:
           --no-interaction \
           --prefer-dist \
           --working-dir=core_assets/frontend/laravel-shell
+    - name: Create Laravel .env for Testing
+      run: |
+        echo "APP_KEY=${{ secrets.LARAVEL_APP_KEY }}" > core_assets/frontend/laravel-shell/.env
+        echo "APP_ENV=testing" >> core_assets/frontend/laravel-shell/.env
+        echo "APP_DEBUG=true" >> core_assets/frontend/laravel-shell/.env
+      working-directory: core_assets/frontend/laravel-shell
 
     - name: Prepare Laravel .env for Testing
       run: |
