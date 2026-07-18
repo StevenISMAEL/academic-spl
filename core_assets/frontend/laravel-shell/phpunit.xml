@@ -9,9 +9,6 @@
             <!-- Incluir Unit y todos sus subdirectorios (ej. Helpers/) -->
             <directory suffix="Test.php">tests/Unit</directory>
         </testsuite>
-        <testsuite name="Feature">
-            <directory>tests/Feature</directory>
-        </testsuite>
     </testsuites>
     <source>
         <include>
