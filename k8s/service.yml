@@ -6,7 +6,7 @@ metadata:
   labels:
     app: academic-spl
 spec:
-  type: LoadBalancer  # GCP asigna una IP pública automáticamente
+  type: ClusterIP  # Solo accesible internamente por el Frontend (ahorra cuota de IPs)
   selector:
     app: academic-spl
   ports:
