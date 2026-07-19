@@ -48,6 +48,9 @@ echo ">>> [Frontend] BACKEND_URL = ${BACKEND_URL:-no configurado}"
 echo ">>> [Frontend] Ejecutando migraciones de Laravel..."
 php artisan migrate --force --no-interaction 2>/dev/null || true
 
+echo ">>> [Frontend] Sembrando datos iniciales (usuario de prueba)..."
+php artisan db:seed --force --no-interaction 2>/dev/null || true
+
 echo ">>> [Frontend] Limpiando y reconstruyendo caché..."
 php artisan config:cache  2>/dev/null || true
 php artisan route:cache   2>/dev/null || true
