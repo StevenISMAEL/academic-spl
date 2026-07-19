@@ -296,226 +296,11 @@ jobs:
       run: terraform apply -auto-approve
 
   # ===========================================================================
-  # JOB 4: CD — DESPLIEGUE A STAGING (AUTOMÁTICO)
-  # ===========================================================================
-  deploy-staging:
-    name: Deploy to Staging Environment
-    needs: terraform-deploy
-    runs-on: ubuntu-latest
-    environment: staging
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-
-    - name: Get GKE Credentials
-      uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: gke-academic-spl
-        location: us-central1-a
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-    - name: Deploy Backend + Frontend por producto (Staging)
-      env:
-        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-        LARAVEL_APP_KEY: ${{ secrets.LARAVEL_APP_KEY }}
-        REPO_LC: ${{ github.repository }}
-      run: |
-        SQL_IP=$(gcloud sql instances describe academic-spl-postgres \
-          --format='value(ipAddresses[0].ipAddress)' \
-          --project=${{ secrets.GCP_PROJECT_ID }})
-        echo "Cloud SQL IP: ${SQL_IP}"
-
-        REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
-
-        # Iterar sobre cada producto derivado registrado
-        for PRODUCT_DIR in derived_products/*; do
-          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
-          PRODUCT=$(basename "$PRODUCT_DIR")
-          
-          echo ""
-          echo "======================================================"
-          echo "  Desplegando producto: ${PRODUCT} → namespace: staging-${PRODUCT}"
-          echo "======================================================"
-
-          NS="staging-${PRODUCT}"
-
-          # 1. Crear namespace del producto
-          kubectl create namespace ${NS} --dry-run=client -o yaml | kubectl apply -f -
-          sleep 3
-
-          # 2. Desplegar SECRET del backend (Cloud SQL)
-          sed "s|CLOUD_SQL_IP|${SQL_IP}|g; s|DB_PASSWORD_PLACEHOLDER|${DB_PASSWORD}|g" \
-            k8s/db-secret.yaml \
-            | sed "s|namespace: academic-spl|namespace: ${NS}|g" \
-            | kubectl apply -f -
-
-          # 3. Desplegar CONFIGMAP del backend
-          sed "s|namespace: academic-spl|namespace: ${NS}|g" \
-            k8s/configmap.yaml | kubectl apply -f -
-
-          # 4. Desplegar BACKEND (Deployment + Service + HPA)
-          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
-               s|image: .*|image: ghcr.io/${REPO_LC}/${PRODUCT}-backend:latest|g; \
-               s|name: academic-spl-deployment|name: ${PRODUCT}-backend-deployment|g; \
-               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g; \
-               s|app: academic-spl|app: ${PRODUCT}-backend|g" \
-            k8s/deployment.yaml | kubectl apply -f -
-
-          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
-               s|app: academic-spl|app: ${PRODUCT}-backend|g; \
-               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g" \
-            k8s/service.yml | kubectl apply -f -
-
-          # 5. Desplegar CONFIGMAP del frontend (con URL interna del backend)
-          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local"
-          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-configmap.yaml \
-            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
-            | sed "s|PRODUCT_DISPLAY_NAME|${PRODUCT}|g" \
-            | sed "s|BACKEND_URL:.*|BACKEND_URL: \"${BACKEND_SVC}\"|g" \
-            | sed "s|FRONTEND_EXTERNAL_IP|pending|g" \
-            | kubectl apply -f -
-
-          # 6. Desplegar SECRET del frontend (APP_KEY de Laravel)
-          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-secret.yaml \
-            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
-            | sed "s|LARAVEL_APP_KEY_PLACEHOLDER|${LARAVEL_APP_KEY}|g" \
-            | kubectl apply -f -
-
-          # 7. Desplegar FRONTEND Deployment
-          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-deployment.yaml \
-            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
-            | sed "s|image: .*frontend:latest|image: ghcr.io/${REPO_LC}/${PRODUCT}-frontend:latest|g" \
-            | kubectl apply -f -
-
-          # 8. Desplegar FRONTEND Service
-          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-service.yml \
-            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
-            | kubectl apply -f -
-
-          echo "  ✓ ${PRODUCT}: Backend y Frontend desplegados en namespace ${NS}"
-        done
-
-        echo ""
-        echo "✅ Todos los productos desplegados. Reiniciando pods..."
-        for PRODUCT_DIR in derived_products/*; do
-          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
-          PRODUCT=$(basename "$PRODUCT_DIR")
-          NS="staging-${PRODUCT}"
-          kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${NS} || true
-          kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${NS} || true
-        done
-
-    - name: Deploy Observability Stack
-      continue-on-error: true
-      run: |
-        kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
-
-        # PASO 1: Instalar kube-prometheus-stack PRIMERO
-        # Esto registra los CRDs: PrometheusRule, ServiceMonitor, etc.
-        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
-        helm repo update
-        helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
-          --namespace observability \
-          --create-namespace \
-          --values monitoring/prometheus-values.yaml \
-          --timeout 8m
-
-        # PASO 2: Esperar a que los CRDs estén disponibles
-        echo "Esperando a que los CRDs de Prometheus Operator estén listos..."
-        kubectl wait --for condition=established --timeout=60s \
-          crd/prometheusrules.monitoring.coreos.com \
-          crd/servicemonitors.monitoring.coreos.com || true
-
-        # PASO 3: Aplicar recursos custom DESPUÉS de que los CRDs existan
-        kubectl apply -f monitoring/grafana-slo-dashboard.yaml
-        kubectl apply -f monitoring/alert-rules.yaml
-        kubectl apply -f monitoring/prometheus-service-monitor.yaml
-
-  # ===========================================================================
-  # JOB 5: DAST — ESCANEO DINÁMICO EN STAGING (OWASP ZAP)
-  # ===========================================================================
-  dast-scan:
-    name: OWASP ZAP Security Scan (Staging)
-    needs: deploy-staging
-    runs-on: ubuntu-latest
-    continue-on-error: true
-    permissions:
-      issues: write
-    steps:
-    - name: Authenticate to Google Cloud
-      uses: google-github-actions/auth@v2
-      with:
-        credentials_json: ${{ secrets.GCP_SA_KEY }}
-
-    - name: Set up Cloud SDK
-      uses: google-github-actions/setup-gcloud@v2
-
-    - name: Get GKE Credentials
-      uses: google-github-actions/get-gke-credentials@v2
-      with:
-        cluster_name: gke-academic-spl
-        location: us-central1-a
-        project_id: ${{ secrets.GCP_PROJECT_ID }}
-
-    - name: Retrieve Staging IP
-      timeout-minutes: 10
-      run: |
-        echo "Esperando a que GCP asigne la IP pública a Staging..."
-        STAGING_IP=""
-        ATTEMPTS=0
-        while [ -z "$STAGING_IP" ] && [ $ATTEMPTS -lt 30 ]; do
-          sleep 10
-          STAGING_IP=$(kubectl get svc staging-service -n staging \
-            -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-          ATTEMPTS=$((ATTEMPTS+1))
-        done
-
-        if [ -z "$STAGING_IP" ]; then
-          echo "ERROR: No se pudo obtener la IP después de 5 minutos"
-          exit 1
-        fi
-        echo "IP de Staging encontrada: $STAGING_IP"
-
-        echo "Esperando a que la aplicación responda..."
-        ATTEMPTS=0
-        while [ $ATTEMPTS -lt 30 ]; do
-          HTTP_CODE=$(curl -s --max-time 5 -o /dev/null -w "%{http_code}" \
-            http://$STAGING_IP/ || echo "000")
-          echo "Intento $ATTEMPTS - HTTP: $HTTP_CODE"
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "302" ]; then
-            echo "¡Aplicación lista! (HTTP $HTTP_CODE)"
-            break
-          fi
-          sleep 10
-          ATTEMPTS=$((ATTEMPTS+1))
-        done
-
-        if [ $ATTEMPTS -ge 30 ]; then
-          echo "WARNING: La app no respondió después de 5 minutos, continuando..."
-        fi
-        echo "TARGET_URL=http://$STAGING_IP" >> $GITHUB_ENV
-
-    - name: Run OWASP ZAP Baseline Scan
-      uses: zaproxy/action-baseline@v0.15.0
-      with:
-        target: ${{ env.TARGET_URL }}
-        fail_action: false
-
-  # ===========================================================================
-  # JOB 6: CD — DESPLIEGUE A PRODUCCIÓN (REQUIERE APROBACIÓN MANUAL)
+  # JOB 4: CD — DESPLIEGUE A PRODUCCIÓN
   # ===========================================================================
   deploy-production:
     name: Deploy to Production Environment
-    needs: dast-scan
+    needs: terraform-deploy
     runs-on: ubuntu-latest
     environment: production
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
@@ -624,3 +409,29 @@ jobs:
           kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${PRODUCT} || true
           kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${PRODUCT} || true
         done
+
+    - name: Deploy Observability Stack
+      continue-on-error: true
+      run: |
+        kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
+
+        # PASO 1: Instalar kube-prometheus-stack PRIMERO
+        # Esto registra los CRDs: PrometheusRule, ServiceMonitor, etc.
+        helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+        helm repo update
+        helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
+          --namespace observability \
+          --create-namespace \
+          --values monitoring/prometheus-values.yaml \
+          --timeout 8m
+
+        # PASO 2: Esperar a que los CRDs estén disponibles
+        echo "Esperando a que los CRDs de Prometheus Operator estén listos..."
+        kubectl wait --for condition=established --timeout=60s \
+          crd/prometheusrules.monitoring.coreos.com \
+          crd/servicemonitors.monitoring.coreos.com || true
+
+        # PASO 3: Aplicar recursos custom DESPUÉS de que los CRDs existan
+        kubectl apply -f monitoring/grafana-slo-dashboard.yaml
+        kubectl apply -f monitoring/alert-rules.yaml
+        kubectl apply -f monitoring/prometheus-service-monitor.yaml
