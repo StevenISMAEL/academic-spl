@@ -8,6 +8,7 @@ jsonschema==4.22.0
 sqlalchemy==2.0.30
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
+bcrypt==4.1.2
 # --- Monitoreo (DevOps) ---
 prometheus-fastapi-instrumentator==6.1.0
 # --- Testing (CI/CD) ---

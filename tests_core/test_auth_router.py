@@ -1,9 +1,8 @@
-from collections.abc import Generator
-
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from core_assets.backend.core_engine.config.feature_flags import FeatureFlags
 from core_assets.backend.core_engine.features.auth.router import (
@@ -16,33 +15,37 @@ from core_assets.backend.core_engine.persistence.connection_resolver import get_
 from core_assets.backend.core_engine.persistence.models import Base, PersonaDB
 
 
-def _override_get_db(engine) -> Generator[Session, None, None]:
-    SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 def _build_auth_client(db_path: str = ":memory:"):
-    engine = create_engine(f"sqlite:///{db_path}", connect_args={"check_same_thread": False})
+    engine = create_engine(
+        f"sqlite:///{db_path}",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
     Base.metadata.create_all(engine)
 
-    with Session(engine) as session:
-        session.add(
-            PersonaDB(
-                id="P-001",
-                nombres="Ana",
-                apellidos="García",
-                documento_identidad="1001",
-            )
+    session = Session(engine)
+    session.add(
+        PersonaDB(
+            id="P-001",
+            nombres="Ana",
+            apellidos="García",
+            documento_identidad="1001",
         )
-        session.commit()
+    )
+    session.commit()
+    session.close()
+
+    def override_get_db(request: Request):
+        SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
+        db = SessionLocal()
+        try:
+            yield db
+        finally:
+            db.close()
 
     app = FastAPI()
     app.state.feature_flags = FeatureFlags("tests_core/fixtures/colegio-basico/product_config.yaml")
-    app.dependency_overrides[get_db] = lambda: _override_get_db(engine)
+    app.dependency_overrides[get_db] = override_get_db
     app.include_router(router)
 
     client = TestClient(app)
@@ -95,7 +98,9 @@ class TestAuthRouter:
         assert response.json()["detail"] == "No se pudieron validar las credenciales"
 
     def test_password_helpers_behave_as_expected(self):
-        password = "s3cret"
+        password = ("s3cret" * 20)[:72]
+        assert len(password) <= 72
+
         hashed = get_password_hash(password)
 
         assert verify_password(password, hashed)
