@@ -8,6 +8,9 @@ FROM python:3.11-slim
 
 ARG PRODUCT_CONFIG_PATH
 ARG PRODUCT_NAME
+# PRODUCT_DIR es la carpeta del producto derivado (ej: derived_products/utn)
+# Se infiere del PRODUCT_CONFIG_PATH en el pipeline via sed antes del build
+ARG PRODUCT_DIR
 
 ENV PRODUCT_CONFIG_PATH=${PRODUCT_CONFIG_PATH} \
     PYTHONUNBUFFERED=1
@@ -22,15 +25,16 @@ COPY core_assets/backend/ ./core_assets/backend/
 COPY requirements.txt .
 COPY run_app.py .
 
-# Se copia el árbol de fixtures de configuración que el runtime usa
-# para resolver el producto activo en la imagen de contenedor.
-COPY tests_core/fixtures/ ./tests_core/fixtures/
+# Se copia el árbol del producto derivado específico (backend solamente)
+# Esto incluye el product_config.yaml y el run_app.py del producto
+COPY ${PRODUCT_DIR}/backend/ ./${PRODUCT_DIR}/backend/
 
 RUN pip install --no-cache-dir -r requirements.txt
 
 EXPOSE 8000
 
 CMD ["uvicorn", "run_app:app", "--host", "0.0.0.0", "--port", "8000"]
+
 
 # Ejemplo de build parametrizado (lo que hará el pipeline en Sprint 3):
 # docker build \

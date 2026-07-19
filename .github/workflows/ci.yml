@@ -155,11 +155,9 @@ jobs:
     - name: Prepare Dockerfile for ${{ matrix.product.name }}
       run: |
         set -euo pipefail
-        # Reemplaza el placeholder <PRODUCT_DIR> del template con la ruta real del producto
-        sed "s|products/<PRODUCT_DIR>/|${{ matrix.product.dir }}/backend/|g" \
-          docker/templates/backend.Dockerfile.tpl > Dockerfile.${{ matrix.product.name }}
-        echo "--- Dockerfile generado ---"
-        cat Dockerfile.${{ matrix.product.name }}
+        cp docker/templates/backend.Dockerfile.tpl Dockerfile.${{ matrix.product.name }}
+        echo "--- Dockerfile backend generado para ${{ matrix.product.name }} ---"
+        head -5 Dockerfile.${{ matrix.product.name }}
 
     # --- PASO DEVSECOPS: ESCANEO DE VULNERABILIDADES (TRIVY) ---
     - name: Build local image for security scan (${{ matrix.product.name }})
@@ -167,6 +165,7 @@ jobs:
         docker build \
           --build-arg PRODUCT_CONFIG_PATH=${{ matrix.product.config_path }} \
           --build-arg PRODUCT_NAME=${{ matrix.product.name }} \
+          --build-arg PRODUCT_DIR=${{ matrix.product.dir }} \
           -f Dockerfile.${{ matrix.product.name }} \
           -t academic-spl/${{ matrix.product.name }}:test .
 
@@ -199,6 +198,7 @@ jobs:
         build-args: |
           PRODUCT_CONFIG_PATH=${{ matrix.product.config_path }}
           PRODUCT_NAME=${{ matrix.product.name }}
+          PRODUCT_DIR=${{ matrix.product.dir }}
         tags: |
           ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-backend:latest
           ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-backend:${{ github.sha }}
