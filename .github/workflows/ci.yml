@@ -111,14 +111,13 @@ jobs:
         args: >
           -Dsonar.projectKey=StevenISMAEL_academic-spl
           -Dsonar.organization=stevenismael
-          -Dsonar.sources=core_assets
-          -Dsonar.tests=core_assets/backend/tests_core,core_assets/frontend/laravel-shell/tests
+          -Dsonar.sources=core_assets/backend/core_engine,core_assets/frontend/laravel-shell/app
+          -Dsonar.tests=tests_core,core_assets/frontend/laravel-shell/tests
+          -Dsonar.test.inclusions=**/test_*.py,**/*Test.php
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.exclusions=**/__pycache__/**,**/.venv/**,**/*.pyc,**/vendor/**,**/node_modules/**,**/public/build/**
-          -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,**/config/**,**/database/migrations/**,**/database/seeders/**,**/database/factories/**,**/bootstrap/**,**/routes/**,**/public/index.php,**/core_engine/persistence/migrate.py,**/core_engine/persistence/seeder.py,**/core_engine/persistence/models.py
-          -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,config/*.php,bootstrap/*.php,routes/*.php,database/migrations/*.php,database/seeders/*.php
-          -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,**/config/**,**/database/migrations/**,**/database/seeders/**,**/database/factories/**,**/bootstrap/**,**/routes/**,**/public/index.php,**/*Test.php,**/tests/**
+          -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,**/config/**,**/bootstrap/**,**/routes/**,**/database/migrations/**,**/database/seeders/**,**/database/factories/**,**/public/index.php,**/*Test.php,**/tests/**
           -Dsonar.qualitygate.wait=true
           -Dsonar.qualitygate.timeout=300
 

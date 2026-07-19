@@ -1,0 +1,19 @@
+database:
+  path: demo.db
+metadata:
+  product_name: Demo
+seed_data:
+  cursos:
+  - id: C-001
+    nombre: "Matem\xE1ticas"
+    periodo_id: PER-001
+  periodos:
+  - fecha_fin: '2026-06-30'
+    fecha_inicio: '2026-01-01'
+    id: PER-001
+    nombre: 2026-A
+  personas:
+  - apellidos: "L\xF3pez"
+    documento_identidad: '1234567890'
+    id: P-001
+    nombres: Ana

@@ -1,0 +1,9 @@
+features:
+  attendance: true
+  auditing: true
+  certificates: true
+  enrollment: true
+  grading: true
+  schedule: true
+metadata:
+  product_name: Test Product
