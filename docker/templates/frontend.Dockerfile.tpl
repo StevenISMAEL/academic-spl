@@ -9,7 +9,7 @@ FROM php:8.3-cli AS builder
 
 # Instalar dependencias del sistema para Composer + extensiones PHP
 RUN apt-get update && apt-get install -y \
-    git curl unzip libzip-dev libpng-dev libonig-dev \
+    git curl unzip libzip-dev libpng-dev libonig-dev libsqlite3-dev \
     && docker-php-ext-install zip pdo pdo_sqlite \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
