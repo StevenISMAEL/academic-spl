@@ -22,9 +22,8 @@ COPY core_assets/backend/ ./core_assets/backend/
 COPY requirements.txt .
 COPY run_app.py .
 
-# Se copia el árbol completo de productos para que el contenedor pueda
-# resolver la configuración del producto activo en tiempo de ejecución.
-COPY products/ ./products/
+# Se copia el árbol de fixtures de configuración que el runtime usa
+# para resolver el producto activo en la imagen de contenedor.
 COPY tests_core/fixtures/ ./tests_core/fixtures/
 
 RUN pip install --no-cache-dir -r requirements.txt

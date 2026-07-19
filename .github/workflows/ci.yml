@@ -156,7 +156,6 @@ jobs:
         ls -la
         ls -la docker/templates
         test -f docker/templates/backend.Dockerfile.tpl
-        test -d products/${{ matrix.product.name }}
         cp docker/templates/backend.Dockerfile.tpl Dockerfile.${{ matrix.product.name }}
 
     # --- PASO DEVSECOPS: ESCANEO DE VULNERABILIDADES (TRIVY) ---
