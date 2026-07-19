@@ -496,24 +496,83 @@ jobs:
         location: us-central1-a
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    - name: Deploy to Kubernetes (Production)
+    - name: Deploy Backend + Frontend por producto (Producción)
       env:
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        LARAVEL_APP_KEY: ${{ secrets.LARAVEL_APP_KEY }}
       run: |
-        echo "Obteniendo IP de Cloud SQL..."
         SQL_IP=$(gcloud sql instances describe academic-spl-postgres \
           --format='value(ipAddresses[0].ipAddress)' \
           --project=${{ secrets.GCP_PROJECT_ID }})
+        echo "Cloud SQL IP: ${SQL_IP}"
 
-        echo "Inyectando IP de Cloud SQL y contraseña en el secret..."
-        sed -i "s|CLOUD_SQL_IP|${SQL_IP}|g" k8s/db-secret.yaml
-        sed -i "s|DB_PASSWORD_PLACEHOLDER|${DB_PASSWORD}|g" k8s/db-secret.yaml
+        REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
-        echo "Desplegando en Producción (academic-spl)..."
-        kubectl apply -f k8s/namespace.yaml
-        sleep 5
-        kubectl apply -f k8s/db-secret.yaml
-        kubectl apply -f k8s/
+        for PRODUCT in utn utn2; do
+          echo ""
+          echo "======================================================"
+          echo "  Producción: ${PRODUCT} → namespace: ${PRODUCT}"
+          echo "======================================================"
 
-        echo "Forzando actualización de los pods con la nueva imagen..."
-        kubectl rollout restart deployment academic-spl-deployment -n academic-spl
+          NS="${PRODUCT}"
+
+          kubectl create namespace ${NS} --dry-run=client -o yaml | kubectl apply -f -
+          sleep 3
+
+          # Backend: secret + configmap + deployment + service + hpa
+          sed "s|CLOUD_SQL_IP|${SQL_IP}|g; s|DB_PASSWORD_PLACEHOLDER|${DB_PASSWORD}|g" \
+            k8s/db-secret.yaml \
+            | sed "s|namespace: academic-spl|namespace: ${NS}|g" \
+            | kubectl apply -f -
+
+          sed "s|namespace: academic-spl|namespace: ${NS}|g" \
+            k8s/configmap.yaml | kubectl apply -f -
+
+          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
+               s|image: .*|image: ghcr.io/${REPO_LC}/${PRODUCT}-backend:latest|g; \
+               s|name: academic-spl-deployment|name: ${PRODUCT}-backend-deployment|g; \
+               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g; \
+               s|app: academic-spl|app: ${PRODUCT}-backend|g" \
+            k8s/deployment.yaml | kubectl apply -f -
+
+          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
+               s|app: academic-spl|app: ${PRODUCT}-backend|g; \
+               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g" \
+            k8s/service.yml | kubectl apply -f -
+
+          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
+               s|name: academic-spl-hpa|name: ${PRODUCT}-hpa|g; \
+               s|name: academic-spl-deployment|name: ${PRODUCT}-backend-deployment|g" \
+            k8s/hpa.yml | kubectl apply -f -
+
+          # Frontend: configmap + secret + deployment + service
+          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local:8000"
+
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-configmap.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|BACKEND_URL:.*|BACKEND_URL: \"${BACKEND_SVC}\"|g" \
+            | sed "s|FRONTEND_EXTERNAL_IP|pending|g" \
+            | kubectl apply -f -
+
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-secret.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|LARAVEL_APP_KEY_PLACEHOLDER|${LARAVEL_APP_KEY}|g" \
+            | kubectl apply -f -
+
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-deployment.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|image: .*frontend:latest|image: ghcr.io/${REPO_LC}/${PRODUCT}-frontend:latest|g" \
+            | kubectl apply -f -
+
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-service.yml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | kubectl apply -f -
+
+          echo "  ✓ ${PRODUCT}: desplegado en producción (namespace ${NS})"
+        done
+
+        echo ""
+        echo "✅ Producción actualizada. Reiniciando pods..."
+        for PRODUCT in utn utn2; do
+          kubectl rollout restart deployment ${PRODUCT}-backend-deployment -n ${PRODUCT} || true
+        done
