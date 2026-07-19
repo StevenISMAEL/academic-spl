@@ -239,6 +239,73 @@ class ControllersCoverageTest extends TestCase
         $response->assertSessionHas('success', 'Curso registrado correctamente.');
     }
 
+    public function test_periodos_index_and_store_flow(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/' => Http::response([
+                'product' => 'colegio-basico',
+                'active_optional_features' => ['periodos'],
+                'academic_settings' => [],
+            ], 200),
+            'http://127.0.0.1:8001/periodos/' => Http::response(['data' => [['id' => 'PER-001', 'nombre' => '2026-A']]], 200),
+        ]);
+
+        $user = new User([
+            'name' => 'Periodos User',
+            'email' => 'periodos@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/periodos')
+            ->assertOk()
+            ->assertViewIs('periodos.index');
+
+        $this->actingAs($user)
+            ->from('/periodos')
+            ->post('/periodos', [
+                'id' => 'PER-002',
+                'nombre' => '2026-B',
+                'fecha_inicio' => '2026-01-01',
+                'fecha_fin' => '2026-06-30',
+            ])
+            ->assertRedirect('/periodos')
+            ->assertSessionHas('success', 'Período académico registrado correctamente.');
+    }
+
+    public function test_personas_index_and_store_flow(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/' => Http::response([
+                'product' => 'colegio-basico',
+                'active_optional_features' => ['personas'],
+                'academic_settings' => [],
+            ], 200),
+            'http://127.0.0.1:8001/personas/' => Http::response(['data' => [['id' => 'P-001', 'nombres' => 'Ana', 'apellidos' => 'Pérez']]], 200),
+        ]);
+
+        $user = new User([
+            'name' => 'Personas User',
+            'email' => 'personas@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+
+        $this->actingAs($user)
+            ->get('/personas')
+            ->assertOk()
+            ->assertViewIs('personas.index');
+
+        $this->actingAs($user)
+            ->from('/personas')
+            ->post('/personas', [
+                'nombres' => 'Ana',
+                'apellidos' => 'Pérez',
+                'documento_identidad' => '12345678',
+            ])
+            ->assertRedirect('/personas')
+            ->assertSessionHas('success', 'Persona registrada correctamente.');
+    }
+
     public function test_schedule_index_store_and_destroy_flow(): void
     {
         Http::fake(function ($request) {

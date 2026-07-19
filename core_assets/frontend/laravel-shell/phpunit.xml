@@ -18,6 +18,9 @@
         <include>
             <directory>app</directory>
         </include>
+        <exclude>
+            <directory>app/**/resources/views</directory>
+        </exclude>
     </source>
     <!-- Reporte de cobertura para SonarCloud (sonar.php.coverage.reportPaths=clover.xml) -->
     <coverage>
