@@ -1,0 +1,87 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  # PRODUCT_NAME es reemplazado por el pipeline CI/CD (ej. "utn")
+  name: PRODUCT_NAME-frontend-deployment
+  namespace: PRODUCT_NAME
+  labels:
+    app: PRODUCT_NAME-frontend
+    tier: frontend
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  selector:
+    matchLabels:
+      app: PRODUCT_NAME-frontend
+  template:
+    metadata:
+      labels:
+        app: PRODUCT_NAME-frontend
+        tier: frontend
+    spec:
+      containers:
+      - name: frontend
+        # La imagen se actualiza automáticamente por el pipeline CI/CD
+        image: ghcr.io/stevenismael/academic-spl/PRODUCT_NAME-frontend:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80  # Nginx sirve en el puerto 80
+
+        env:
+        # Variables no sensibles desde ConfigMap
+        - name: APP_NAME
+          valueFrom:
+            configMapKeyRef:
+              name: PRODUCT_NAME-frontend-config
+              key: APP_NAME
+        - name: APP_ENV
+          valueFrom:
+            configMapKeyRef:
+              name: PRODUCT_NAME-frontend-config
+              key: APP_ENV
+        - name: APP_URL
+          valueFrom:
+            configMapKeyRef:
+              name: PRODUCT_NAME-frontend-config
+              key: APP_URL
+        # URL interna del backend dentro del mismo namespace de Kubernetes
+        - name: BACKEND_URL
+          valueFrom:
+            configMapKeyRef:
+              name: PRODUCT_NAME-frontend-config
+              key: BACKEND_URL
+
+        # APP_KEY de Laravel desde Secret (es sensible)
+        - name: APP_KEY
+          valueFrom:
+            secretKeyRef:
+              name: PRODUCT_NAME-frontend-secret
+              key: APP_KEY
+
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "50m"
+          limits:
+            memory: "256Mi"
+            cpu: "300m"
+
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 20
+          periodSeconds: 15
+          failureThreshold: 3
+
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          failureThreshold: 3

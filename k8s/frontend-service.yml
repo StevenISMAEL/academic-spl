@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: PRODUCT_NAME-frontend-service
+  namespace: PRODUCT_NAME
+  labels:
+    app: PRODUCT_NAME-frontend
+    tier: frontend
+spec:
+  type: LoadBalancer   # GCP asigna una IP pública independiente para el frontend
+  selector:
+    app: PRODUCT_NAME-frontend
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80

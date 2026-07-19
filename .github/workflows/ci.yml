@@ -190,7 +190,7 @@ jobs:
         username: ${{ github.actor }}
         password: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Push Image to GHCR (${{ matrix.product.name }})
+    - name: Push Backend Image to GHCR (${{ matrix.product.name }})
       uses: docker/build-push-action@v5
       with:
         context: .
@@ -200,8 +200,37 @@ jobs:
           PRODUCT_CONFIG_PATH=${{ matrix.product.config_path }}
           PRODUCT_NAME=${{ matrix.product.name }}
         tags: |
-          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}:latest
-          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}:${{ github.sha }}
+          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-backend:latest
+          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-backend:${{ github.sha }}
+
+    # ── FRONTEND: Build + Trivy + Push ──────────────────────────────────────────
+    # El frontend (Laravel) es compartido — se construye una sola vez por producto
+    # y se configura en runtime con la URL del backend via variables de entorno.
+    - name: Build Frontend image for security scan (${{ matrix.product.name }})
+      run: |
+        docker build \
+          -f docker/templates/frontend.Dockerfile.tpl \
+          -t academic-spl/${{ matrix.product.name }}-frontend:test .
+
+    - name: Run Trivy on Frontend (${{ matrix.product.name }})
+      uses: aquasecurity/trivy-action@master
+      with:
+        image-ref: 'academic-spl/${{ matrix.product.name }}-frontend:test'
+        format: 'table'
+        exit-code: '1'
+        ignore-unfixed: true
+        vuln-type: 'os,library'
+        severity: 'CRITICAL'
+
+    - name: Push Frontend Image to GHCR (${{ matrix.product.name }})
+      uses: docker/build-push-action@v5
+      with:
+        context: .
+        file: docker/templates/frontend.Dockerfile.tpl
+        push: true
+        tags: |
+          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-frontend:latest
+          ghcr.io/${{ env.REPO_LC }}/${{ matrix.product.name }}-frontend:${{ github.sha }}
 
   # ===========================================================================
   # JOB 3: TERRAFORM — APROVISIONAR INFRAESTRUCTURA EN GCP
@@ -269,36 +298,85 @@ jobs:
         location: us-central1-a
         project_id: ${{ secrets.GCP_PROJECT_ID }}
 
-    - name: Deploy to Kubernetes (Staging)
+    - name: Deploy Backend + Frontend por producto (Staging)
       env:
         DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        LARAVEL_APP_KEY: ${{ secrets.LARAVEL_APP_KEY }}
+        REPO_LC: ${{ github.repository }}
       run: |
-        echo "Obteniendo IP de Cloud SQL..."
         SQL_IP=$(gcloud sql instances describe academic-spl-postgres \
           --format='value(ipAddresses[0].ipAddress)' \
           --project=${{ secrets.GCP_PROJECT_ID }})
         echo "Cloud SQL IP: ${SQL_IP}"
 
-        echo "Modificando YAMLs para apuntar a Staging..."
-        sed -i 's/namespace: academic-spl/namespace: staging/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/name: academic-spl-config/name: staging-config/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/name: academic-spl-db-secret/name: staging-db-secret/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/name: academic-spl-service/name: staging-service/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/name: academic-spl-deployment/name: staging-deployment/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/name: academic-spl-hpa/name: staging-hpa/g' k8s/*.yaml k8s/*.yml
-        sed -i 's/app: academic-spl/app: staging/g' k8s/*.yaml k8s/*.yml
+        REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
-        echo "Inyectando IP de Cloud SQL y contraseña en el secret..."
-        sed -i "s|CLOUD_SQL_IP|${SQL_IP}|g" k8s/db-secret.yaml
-        sed -i "s|DB_PASSWORD_PLACEHOLDER|${DB_PASSWORD}|g" k8s/db-secret.yaml
+        # Iterar sobre cada producto derivado registrado
+        for PRODUCT in utn utn2; do
+          echo ""
+          echo "======================================================"
+          echo "  Desplegando producto: ${PRODUCT} → namespace: staging-${PRODUCT}"
+          echo "======================================================"
 
-        kubectl apply -f k8s/namespace.yaml
-        sleep 5
-        kubectl apply -f k8s/db-secret.yaml
-        kubectl apply -f k8s/
+          NS="staging-${PRODUCT}"
 
-        echo "Forzando actualización de los pods con la nueva imagen..."
-        kubectl rollout restart deployment staging-deployment -n staging
+          # 1. Crear namespace del producto
+          kubectl create namespace ${NS} --dry-run=client -o yaml | kubectl apply -f -
+          sleep 3
+
+          # 2. Desplegar SECRET del backend (Cloud SQL)
+          sed "s|CLOUD_SQL_IP|${SQL_IP}|g; s|DB_PASSWORD_PLACEHOLDER|${DB_PASSWORD}|g" \
+            k8s/db-secret.yaml \
+            | sed "s|namespace: academic-spl|namespace: ${NS}|g" \
+            | kubectl apply -f -
+
+          # 3. Desplegar CONFIGMAP del backend
+          sed "s|namespace: academic-spl|namespace: ${NS}|g" \
+            k8s/configmap.yaml | kubectl apply -f -
+
+          # 4. Desplegar BACKEND (Deployment + Service + HPA)
+          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
+               s|image: .*|image: ghcr.io/${REPO_LC}/${PRODUCT}-backend:latest|g; \
+               s|name: academic-spl-deployment|name: ${PRODUCT}-backend-deployment|g; \
+               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g; \
+               s|app: academic-spl|app: ${PRODUCT}-backend|g" \
+            k8s/deployment.yaml | kubectl apply -f -
+
+          sed "s|namespace: academic-spl|namespace: ${NS}|g; \
+               s|app: academic-spl|app: ${PRODUCT}-backend|g; \
+               s|name: academic-spl-service|name: ${PRODUCT}-backend-service|g" \
+            k8s/service.yml | kubectl apply -f -
+
+          # 5. Desplegar CONFIGMAP del frontend (con URL interna del backend)
+          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local:8000"
+          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
+               s|PRODUCT_DISPLAY_NAME|${PRODUCT}|g; \
+               s|BACKEND_URL: .*|BACKEND_URL: \"${BACKEND_SVC}\"|g; \
+               s|FRONTEND_EXTERNAL_IP|pending|g" \
+            k8s/frontend-configmap.yaml | kubectl apply -f -
+
+          # 6. Desplegar SECRET del frontend (APP_KEY de Laravel)
+          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
+               s|LARAVEL_APP_KEY_PLACEHOLDER|${LARAVEL_APP_KEY}|g" \
+            k8s/frontend-secret.yaml | kubectl apply -f -
+
+          # 7. Desplegar FRONTEND (Deployment + Service)
+          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
+               s|image: .*frontend:latest|image: ghcr.io/${REPO_LC}/${PRODUCT}-frontend:latest|g" \
+            k8s/frontend-deployment.yaml | kubectl apply -f -
+
+          sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            k8s/frontend-service.yml | kubectl apply -f -
+
+          echo "  ✓ ${PRODUCT}: Backend y Frontend desplegados en namespace ${NS}"
+        done
+
+        echo ""
+        echo "✅ Todos los productos desplegados. Reiniciando pods..."
+        for PRODUCT in utn utn2; do
+          NS="staging-${PRODUCT}"
+          kubectl rollout restart deployment ${PRODUCT}-backend-deployment -n ${NS} || true
+        done
 
     - name: Deploy Observability Stack
       continue-on-error: true

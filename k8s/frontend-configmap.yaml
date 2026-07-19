@@ -1,0 +1,14 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: PRODUCT_NAME-frontend-config
+  namespace: PRODUCT_NAME
+data:
+  # Nombre de la institución para mostrar en el UI
+  APP_NAME: "PRODUCT_DISPLAY_NAME"
+  APP_ENV: "production"
+  # URL pública del propio frontend (se actualiza con la IP real post-deploy)
+  APP_URL: "http://FRONTEND_EXTERNAL_IP"
+  # URL INTERNA de Kubernetes al backend del mismo producto
+  # No necesita IP pública — el tráfico nunca sale del clúster
+  BACKEND_URL: "http://academic-spl-service.PRODUCT_NAME.svc.cluster.local:8000"
