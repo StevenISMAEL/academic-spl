@@ -1,0 +1,20 @@
+metadata:
+  product_name: Instituto UTN
+  product_type: instituto
+features:
+  grading: true
+  enrollment: true
+  certificates: true
+  attendance: false
+  schedule: false
+  reports: false
+  auditing: true
+academic_settings:
+  evaluation_scale: literal
+  grading_max_value: 20
+  passing_grade: 14.0
+  attendance_min_percentage: 75.0
+  max_enrollments_per_period: 8
+  periods_per_year: 2
+database:
+  path: utn3.db
