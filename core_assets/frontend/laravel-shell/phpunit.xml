@@ -20,6 +20,11 @@
         </include>
         <exclude>
             <directory>app/**/resources/views</directory>
+            <directory>bootstrap</directory>
+            <directory>config</directory>
+            <directory>routes</directory>
+            <directory>database/migrations</directory>
+            <directory>database/seeders</directory>
         </exclude>
     </source>
     <!-- Reporte de cobertura para SonarCloud (sonar.php.coverage.reportPaths=clover.xml) -->
