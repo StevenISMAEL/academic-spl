@@ -148,7 +148,7 @@ class TestReportsAndCertificatesRoutes:
         assert consolidated_payload["feature"] == "reports"
         assert consolidated_payload["total_estudiantes"] == 2
         assert consolidated_payload["resumen_estados"]["APROBADO"] == 1
-        assert consolidated_payload["resumen_estados"]["REPROBADO_NOTA"] == 1
+        assert consolidated_payload["resumen_estados"]["REPROBADO_FALTA"] == 1
 
     def test_certificates_routes_generate_and_read_certificate_history(self):
         client = _build_client_with_seed_data()
