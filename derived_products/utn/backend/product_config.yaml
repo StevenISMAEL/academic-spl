@@ -1,16 +1,16 @@
 metadata:
-  product_name: Universidad Técnica del norte
+  product_name: Universidad Técnica del Norte
   product_type: universidad
 features:
   grading: true
   enrollment: true
   schedule: true
   certificates: true
-  attendance: false
-  reports: false
-  auditing: false
+  attendance: true
+  reports: true
+  auditing: true
 academic_settings:
-  evaluation_scale: literal
+  evaluation_scale: numeric
   grading_max_value: 10
   passing_grade: 6.0
   attendance_min_percentage: 60.0

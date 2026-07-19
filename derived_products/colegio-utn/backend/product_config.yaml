@@ -10,11 +10,11 @@ features:
   schedule: false
   auditing: false
 academic_settings:
-  evaluation_scale: numeric
+  evaluation_scale: literal
   grading_max_value: 10
   passing_grade: 7.0
   attendance_min_percentage: 80.0
   max_enrollments_per_period: 12
   periods_per_year: 3
 database:
-  path: utn2.db
+  path: colegio_utn.db

@@ -10,11 +10,11 @@ features:
   reports: false
   auditing: true
 academic_settings:
-  evaluation_scale: literal
+  evaluation_scale: numeric
   grading_max_value: 20
   passing_grade: 14.0
   attendance_min_percentage: 75.0
   max_enrollments_per_period: 8
   periods_per_year: 2
 database:
-  path: utn3.db
+  path: instituto_utn.db
