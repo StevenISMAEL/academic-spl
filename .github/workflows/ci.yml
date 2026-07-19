@@ -387,9 +387,9 @@ jobs:
       continue-on-error: true
       run: |
         kubectl create namespace observability --dry-run=client -o yaml | kubectl apply -f -
-        kubectl apply -f monitoring/grafana-slo-dashboard.yaml
-        kubectl apply -f monitoring/alert-rules.yaml
-        kubectl apply -f monitoring/prometheus-service-monitor.yaml
+
+        # PASO 1: Instalar kube-prometheus-stack PRIMERO
+        # Esto registra los CRDs: PrometheusRule, ServiceMonitor, etc.
         helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
         helm repo update
         helm upgrade --install prometheus prometheus-community/kube-prometheus-stack \
@@ -397,6 +397,17 @@ jobs:
           --create-namespace \
           --values monitoring/prometheus-values.yaml \
           --timeout 8m
+
+        # PASO 2: Esperar a que los CRDs estén disponibles
+        echo "Esperando a que los CRDs de Prometheus Operator estén listos..."
+        kubectl wait --for condition=established --timeout=60s \
+          crd/prometheusrules.monitoring.coreos.com \
+          crd/servicemonitors.monitoring.coreos.com || true
+
+        # PASO 3: Aplicar recursos custom DESPUÉS de que los CRDs existan
+        kubectl apply -f monitoring/grafana-slo-dashboard.yaml
+        kubectl apply -f monitoring/alert-rules.yaml
+        kubectl apply -f monitoring/prometheus-service-monitor.yaml
 
   # ===========================================================================
   # JOB 5: DAST — ESCANEO DINÁMICO EN STAGING (OWASP ZAP)
