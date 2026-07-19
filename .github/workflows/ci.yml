@@ -103,7 +103,7 @@ jobs:
 
     # --- PASO DEVSECOPS: ANÁLISIS ESTÁTICO DE CALIDAD ---
     - name: SonarCloud Scan
-      uses: SonarSource/sonarcloud-github-action@v2.3.0
+      uses: SonarSource/sonarcloud-github-action@master
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
