@@ -135,12 +135,12 @@ jobs:
       packages: write
     strategy:
       matrix:
-        # Lista de productos derivados del SPL — añadir más aquí si se crean
+        # Lista de productos disponibles en el repositorio actual
         product:
-          - name: colegio-norte
-            config_path: derived_products/colegio-norte/product_config.yaml
-          - name: utn
-            config_path: derived_products/utn/product_config.yaml
+          - name: colegio-basico
+            config_path: tests_core/fixtures/colegio-basico/product_config.yaml
+          - name: universidad-compleja
+            config_path: tests_core/fixtures/universidad-compleja/product_config.yaml
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -152,8 +152,9 @@ jobs:
     - name: Prepare Dockerfile for ${{ matrix.product.name }}
       run: |
         cp docker/templates/backend.Dockerfile.tpl Dockerfile.${{ matrix.product.name }}
+        test -d products/${{ matrix.product.name }}
         # Reemplazar el placeholder <PRODUCT_DIR> con el directorio real del producto
-        sed -i "s|products/<PRODUCT_DIR>/|derived_products/${{ matrix.product.name }}/|g" \
+        sed -i "s|products/<PRODUCT_DIR>/|products/${{ matrix.product.name }}/|g" \
           Dockerfile.${{ matrix.product.name }}
 
     # --- PASO DEVSECOPS: ESCANEO DE VULNERABILIDADES (TRIVY) ---
