@@ -1,21 +1,20 @@
-#!/bin/sh
+#!/bin/bash
 # =============================================================================
-# Entrypoint del contenedor Frontend (Laravel)
+# Entrypoint del contenedor Frontend (Laravel + Apache)
 #
-# Genera el archivo .env de Laravel a partir de variables de entorno de
-# Kubernetes (ConfigMap / Secret), luego arranca PHP-FPM y Nginx.
+# Genera el .env de Laravel desde variables de entorno de Kubernetes,
+# ejecuta migraciones y arranca Apache en foreground.
 #
-# Variables de entorno requeridas (inyectadas por Kubernetes):
-#   - APP_NAME          → Nombre del producto (ej. "Universidad UTN")
-#   - APP_KEY           → Clave de cifrado de Laravel (secreto de k8s)
-#   - APP_URL           → URL pública del propio frontend
-#   - APP_ENV           → Entorno (production / staging)
-#   - BACKEND_URL       → URL interna del servicio backend en k8s
-#                         (ej. http://backend-utn-service:8000)
+# Variables requeridas (desde ConfigMap/Secret de Kubernetes):
+#   APP_NAME     - Nombre del producto
+#   APP_KEY      - Clave de cifrado de Laravel (desde Secret)
+#   APP_URL      - URL pública del frontend
+#   APP_ENV      - Entorno (production/staging)
+#   BACKEND_URL  - URL interna del backend en el clúster
 # =============================================================================
 set -e
 
-echo ">>> Generando .env desde variables de entorno de Kubernetes..."
+echo ">>> [Frontend] Generando .env desde variables de entorno..."
 cat > /var/www/html/.env << EOF
 APP_NAME="${APP_NAME:-Academic SPL}"
 APP_ENV=${APP_ENV:-production}
@@ -29,7 +28,6 @@ APP_FALLBACK_LOCALE=en
 LOG_CHANNEL=stderr
 LOG_LEVEL=warning
 
-# Base de datos SQLite para sesiones y caché de Laravel
 DB_CONNECTION=sqlite
 DB_DATABASE=/var/www/html/database/database.sqlite
 
@@ -38,25 +36,22 @@ SESSION_LIFETIME=120
 CACHE_STORE=database
 QUEUE_CONNECTION=sync
 
-# URL del backend FastAPI — inyectada por Kubernetes
-# En producción: http://<product>-backend-service:8000
-# En staging:    http://<product>-backend-service:8000
+# URL interna del backend FastAPI en el mismo clúster de Kubernetes
 CORE_ENGINE_BACKEND_URL=${BACKEND_URL:-http://localhost:8000}
 
 VITE_APP_NAME="${APP_NAME:-Academic SPL}"
 EOF
 
-echo ">>> .env generado. CORE_ENGINE_BACKEND_URL = ${BACKEND_URL}"
+echo ">>> [Frontend] APP_KEY presente: $([ -n "${APP_KEY}" ] && echo 'SÍ' || echo 'NO - ERROR')"
+echo ">>> [Frontend] BACKEND_URL = ${BACKEND_URL:-no configurado}"
 
-echo ">>> Ejecutando migraciones de Laravel (sesiones, caché)..."
-php /var/www/html/artisan migrate --force --no-interaction 2>/dev/null || true
+echo ">>> [Frontend] Ejecutando migraciones de Laravel..."
+php artisan migrate --force --no-interaction 2>/dev/null || true
 
-echo ">>> Limpiando caché de configuración..."
-php /var/www/html/artisan config:cache
-php /var/www/html/artisan route:cache
+echo ">>> [Frontend] Limpiando y reconstruyendo caché..."
+php artisan config:cache  2>/dev/null || true
+php artisan route:cache   2>/dev/null || true
+php artisan view:cache    2>/dev/null || true
 
-echo ">>> Iniciando PHP-FPM en background..."
-php-fpm -D
-
-echo ">>> Iniciando Nginx en foreground..."
-nginx -g "daemon off;"
+echo ">>> [Frontend] Iniciando Apache..."
+exec apache2-foreground
