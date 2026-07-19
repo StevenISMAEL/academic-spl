@@ -28,10 +28,26 @@ core_assets/frontend/laravel-shell/storage/*.key
 core_assets/frontend/laravel-shell/bootstrap/cache/*.php
 core_assets/frontend/laravel-shell/.env
 
-# --- Bases de datos locales de cada producto derivado ---
-products/**/*.sqlite
-products/**/*.db
-derived_products/
+# --- Productos derivados (derived_products/) ---
+# Solo se ignoran los archivos que NO deben subir a git.
+# Los product_config.yaml y run_app.py SÍ se versionan
+# porque el pipeline CI/CD los necesita para construir las imágenes Docker.
+
+# Secretos y configuración local
+derived_products/**/.env
+derived_products/**/.env.*
+derived_products/**/.env.frontend
+
+# Bases de datos locales de desarrollo
+derived_products/**/*.db
+derived_products/**/*.sqlite
+
+# La carpeta core_engine es una copia de core_assets/ — no duplicar en git
+derived_products/**/core_engine/
+
+# Caché de Python
+derived_products/**/__pycache__/
+derived_products/**/*.pyc
 
 # --- Editor / Sistema operativo ---
 .vscode/

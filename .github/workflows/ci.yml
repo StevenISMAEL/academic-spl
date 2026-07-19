@@ -135,12 +135,15 @@ jobs:
       packages: write
     strategy:
       matrix:
-        # Lista de productos disponibles en el repositorio actual
+        # Lista de productos derivados disponibles en el repositorio.
+        # Añadir una entrada aquí por cada producto generado con workbench.py.
         product:
-          - name: colegio-basico
-            config_path: tests_core/fixtures/colegio-basico/product_config.yaml
-          - name: universidad-compleja
-            config_path: tests_core/fixtures/universidad-compleja/product_config.yaml
+          - name: utn
+            dir: derived_products/utn
+            config_path: derived_products/utn/backend/product_config.yaml
+          - name: utn2
+            dir: derived_products/utn2
+            config_path: derived_products/utn2/backend/product_config.yaml
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -152,11 +155,11 @@ jobs:
     - name: Prepare Dockerfile for ${{ matrix.product.name }}
       run: |
         set -euo pipefail
-        pwd
-        ls -la
-        ls -la docker/templates
-        test -f docker/templates/backend.Dockerfile.tpl
-        cp docker/templates/backend.Dockerfile.tpl Dockerfile.${{ matrix.product.name }}
+        # Reemplaza el placeholder <PRODUCT_DIR> del template con la ruta real del producto
+        sed "s|products/<PRODUCT_DIR>/|${{ matrix.product.dir }}/backend/|g" \
+          docker/templates/backend.Dockerfile.tpl > Dockerfile.${{ matrix.product.name }}
+        echo "--- Dockerfile generado ---"
+        cat Dockerfile.${{ matrix.product.name }}
 
     # --- PASO DEVSECOPS: ESCANEO DE VULNERABILIDADES (TRIVY) ---
     - name: Build local image for security scan (${{ matrix.product.name }})

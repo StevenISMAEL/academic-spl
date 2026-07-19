@@ -1,0 +1,20 @@
+metadata:
+  product_name: Colegio UTN
+  product_type: colegio
+features:
+  grading: true
+  attendance: true
+  enrollment: true
+  reports: true
+  certificates: false
+  schedule: false
+  auditing: false
+academic_settings:
+  evaluation_scale: numeric
+  grading_max_value: 10
+  passing_grade: 7.0
+  attendance_min_percentage: 80.0
+  max_enrollments_per_period: 12
+  periods_per_year: 3
+database:
+  path: utn2.db
