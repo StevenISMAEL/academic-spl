@@ -380,7 +380,8 @@ jobs:
         echo "✅ Todos los productos desplegados. Reiniciando pods..."
         for PRODUCT in utn utn2; do
           NS="staging-${PRODUCT}"
-          kubectl rollout restart deployment ${PRODUCT}-backend-deployment -n ${NS} || true
+          kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${NS} || true
+          kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${NS} || true
         done
 
     - name: Deploy Observability Stack
@@ -585,5 +586,6 @@ jobs:
         echo ""
         echo "✅ Producción actualizada. Reiniciando pods..."
         for PRODUCT in utn utn2; do
-          kubectl rollout restart deployment ${PRODUCT}-backend-deployment -n ${PRODUCT} || true
+          kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${PRODUCT} || true
+          kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${PRODUCT} || true
         done
