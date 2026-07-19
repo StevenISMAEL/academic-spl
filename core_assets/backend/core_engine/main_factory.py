@@ -147,4 +147,8 @@ def create_app(config_path: str | None = None) -> FastAPI:
             "academic_settings": flags.get_setting("academic_settings", default={}),
         }
 
+    # 3. Instrumentación Prometheus — expone /metrics para Grafana/Prometheus
+    from prometheus_fastapi_instrumentator import Instrumentator
+    Instrumentator().instrument(app).expose(app)
+
     return app

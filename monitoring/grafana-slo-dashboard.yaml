@@ -38,7 +38,7 @@ data:
           },
           "targets": [
             {
-              "expr": "academic_spl:http_request_success_rate:5m",
+              "expr": "1 - (sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m])))",
               "legendFormat": "Disponibilidad",
               "refId": "A"
             }
@@ -64,7 +64,7 @@ data:
           },
           "targets": [
             {
-              "expr": "academic_spl:http_request_latency_p99:5m",
+              "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le))",
               "legendFormat": "P99 Latencia",
               "refId": "A"
             }
@@ -89,7 +89,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=~\"staging|academic-spl\"}[5m]))",
+              "expr": "sum(rate(http_requests_total[5m]))",
               "legendFormat": "Requests/s",
               "refId": "A"
             }
@@ -115,7 +115,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=~\"staging|academic-spl\", status=~\"5..\"}[5m])) / sum(rate(http_requests_total{namespace=~\"staging|academic-spl\"}[5m]))",
+              "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) / sum(rate(http_requests_total[5m]))",
               "legendFormat": "Error Rate",
               "refId": "A"
             }
@@ -131,7 +131,7 @@ data:
           },
           "targets": [
             {
-              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket{namespace=~\"staging|academic-spl\"}[5m])) by (le, handler))",
+              "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, handler))",
               "legendFormat": "P95 - {{ handler }}",
               "refId": "A"
             }
@@ -144,7 +144,7 @@ data:
           "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
           "targets": [
             {
-              "expr": "sum(rate(http_requests_total{namespace=~\"staging|academic-spl\"}[5m])) by (status)",
+              "expr": "sum(rate(http_requests_total[5m])) by (status)",
               "legendFormat": "HTTP {{ status }}",
               "refId": "A"
             }
@@ -152,13 +152,13 @@ data:
         },
         {
           "id": 7,
-          "title": "Pods activos",
+          "title": "Pods activos por namespace",
           "type": "timeseries",
           "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
           "targets": [
             {
-              "expr": "kube_deployment_status_replicas_ready{namespace=~\"staging|academic-spl\", deployment=~\"academic-spl.*\"}",
-              "legendFormat": "Pods Ready - {{ namespace }}",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace=~\"utn.*|staging-utn.*\"}) by (namespace, deployment)",
+              "legendFormat": "{{ namespace }} / {{ deployment }}",
               "refId": "A"
             }
           ]
@@ -173,8 +173,37 @@ data:
           },
           "targets": [
             {
-              "expr": "container_memory_working_set_bytes{namespace=~\"staging|academic-spl\", pod=~\"academic-spl.*\", container=\"academic-spl\"}",
-              "legendFormat": "Memoria - {{ pod }}",
+              "expr": "sum(container_memory_working_set_bytes{namespace=~\"utn.*|staging-utn.*\", container!=\"POD\", container!=\"\"}) by (pod, namespace)",
+              "legendFormat": "{{ namespace }}/{{ pod }}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 9,
+          "title": "Requests por producto (namespace)",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 0, "y": 18 },
+          "targets": [
+            {
+              "expr": "sum(rate(http_requests_total[5m])) by (namespace)",
+              "legendFormat": "{{ namespace }}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "id": 10,
+          "title": "CPU por Pod",
+          "type": "timeseries",
+          "gridPos": { "h": 6, "w": 12, "x": 12, "y": 18 },
+          "fieldConfig": {
+            "defaults": { "unit": "short" }
+          },
+          "targets": [
+            {
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"utn.*|staging-utn.*\", container!=\"POD\", container!=\"\"}[5m])) by (pod, namespace)",
+              "legendFormat": "{{ namespace }}/{{ pod }}",
               "refId": "A"
             }
           ]
