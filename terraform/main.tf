@@ -69,7 +69,7 @@ resource "google_sql_database_instance" "postgres" {
   deletion_protection = false
 
   settings {
-    tier = "db-f1-micro"  # Tier económico para desarrollo/staging
+    tier = "db-f1-micro" # Tier económico para desarrollo/staging
 
     ip_configuration {
       ipv4_enabled = true
