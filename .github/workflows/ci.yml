@@ -349,24 +349,29 @@ jobs:
 
           # 5. Desplegar CONFIGMAP del frontend (con URL interna del backend)
           BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local:8000"
-          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
-               s|PRODUCT_DISPLAY_NAME|${PRODUCT}|g; \
-               s|BACKEND_URL: .*|BACKEND_URL: \"${BACKEND_SVC}\"|g; \
-               s|FRONTEND_EXTERNAL_IP|pending|g" \
-            k8s/frontend-configmap.yaml | kubectl apply -f -
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-configmap.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|PRODUCT_DISPLAY_NAME|${PRODUCT}|g" \
+            | sed "s|BACKEND_URL:.*|BACKEND_URL: \"${BACKEND_SVC}\"|g" \
+            | sed "s|FRONTEND_EXTERNAL_IP|pending|g" \
+            | kubectl apply -f -
 
           # 6. Desplegar SECRET del frontend (APP_KEY de Laravel)
-          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
-               s|LARAVEL_APP_KEY_PLACEHOLDER|${LARAVEL_APP_KEY}|g" \
-            k8s/frontend-secret.yaml | kubectl apply -f -
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-secret.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|LARAVEL_APP_KEY_PLACEHOLDER|${LARAVEL_APP_KEY}|g" \
+            | kubectl apply -f -
 
-          # 7. Desplegar FRONTEND (Deployment + Service)
-          sed "s|PRODUCT_NAME|${PRODUCT}|g; \
-               s|image: .*frontend:latest|image: ghcr.io/${REPO_LC}/${PRODUCT}-frontend:latest|g" \
-            k8s/frontend-deployment.yaml | kubectl apply -f -
+          # 7. Desplegar FRONTEND Deployment
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-deployment.yaml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | sed "s|image: .*frontend:latest|image: ghcr.io/${REPO_LC}/${PRODUCT}-frontend:latest|g" \
+            | kubectl apply -f -
 
-          sed "s|PRODUCT_NAME|${PRODUCT}|g" \
-            k8s/frontend-service.yml | kubectl apply -f -
+          # 8. Desplegar FRONTEND Service
+          sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-service.yml \
+            | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
+            | kubectl apply -f -
 
           echo "  ✓ ${PRODUCT}: Backend y Frontend desplegados en namespace ${NS}"
         done
