@@ -178,6 +178,37 @@ class ControllersCoverageTest extends TestCase
         $response->assertSessionHas('success', '✅ Certificado emitido exitosamente.');
     }
 
+    public function test_certificates_generate_rejected_status_sets_error_session(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/' => Http::response([
+                'product' => 'colegio-basico',
+                'active_optional_features' => ['certificates'],
+                'academic_settings' => [],
+            ], 200),
+            'http://127.0.0.1:8001/certificates/' => Http::response(['data' => [['id' => 'CERT-1']]], 200),
+            'http://127.0.0.1:8001/personas/' => Http::response(['data' => [['id' => 'P-001']]], 200),
+            'http://127.0.0.1:8001/certificates/P-001/generate' => Http::response([
+                'certificado' => [
+                    'estado' => 'rechazado',
+                    'motivo_rechazo' => 'Falta asistencia mínima',
+                ],
+            ], 200),
+        ]);
+
+        $user = new User([
+            'name' => 'Test User',
+            'email' => 'cert-reject@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+
+        $this->actingAs($user)
+            ->from('/certificates')
+            ->post('/certificates/P-001/generate')
+            ->assertRedirect(route('certificates.index'))
+            ->assertSessionHas('error', '⚠️ Certificado rechazado: Falta asistencia mínima');
+    }
+
     public function test_cursos_index_and_store(): void
     {
         Http::fake([
@@ -206,6 +237,100 @@ class ControllersCoverageTest extends TestCase
 
         $response->assertRedirect('/cursos');
         $response->assertSessionHas('success', 'Curso registrado correctamente.');
+    }
+
+    public function test_schedule_index_store_and_destroy_flow(): void
+    {
+        Http::fake(function ($request) {
+            if ($request->url() === 'http://127.0.0.1:8001/' && $request->method() === 'GET') {
+                return Http::response([
+                    'product' => 'colegio-basico',
+                    'active_optional_features' => ['schedule'],
+                    'academic_settings' => [],
+                ], 200);
+            }
+
+            if ($request->url() === 'http://127.0.0.1:8001/schedule/' && $request->method() === 'GET') {
+                return Http::response([
+                    'horarios' => [[
+                        'id' => 'S-001',
+                        'curso_id' => 'C-001',
+                        'nombre_curso' => 'Matemática',
+                        'dia_semana' => 'Lunes',
+                        'hora_inicio' => '08:00',
+                        'hora_fin' => '10:00',
+                        'aula' => 'A-101',
+                    ]],
+                    'horarios_por_dia' => [
+                        'Lunes' => [[
+                            'id' => 'S-001',
+                            'curso_id' => 'C-001',
+                            'nombre_curso' => 'Matemática',
+                            'dia_semana' => 'Lunes',
+                            'hora_inicio' => '08:00',
+                            'hora_fin' => '10:00',
+                            'aula' => 'A-101',
+                        ]],
+                    ],
+                    'periods_per_year' => 2,
+                    'product_name' => 'colegio-basico',
+                    'dias_validos' => ['Lunes', 'Martes'],
+                ], 200);
+            }
+
+            if ($request->url() === 'http://127.0.0.1:8001/cursos/' && $request->method() === 'GET') {
+                return Http::response([
+                    'data' => [['id' => 'C-001', 'nombre' => 'Matemática']],
+                ], 200);
+            }
+
+            if ($request->url() === 'http://127.0.0.1:8001/schedule/' && $request->method() === 'POST') {
+                return Http::response(['ok' => true], 200);
+            }
+
+            if ($request->url() === 'http://127.0.0.1:8001/schedule/S-001' && $request->method() === 'DELETE') {
+                return Http::response(['ok' => true], 200);
+            }
+
+            return Http::response(['ok' => true], 200);
+        });
+
+        $user = new User([
+            'name' => 'Schedule User',
+            'email' => 'schedule@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+
+        $this->actingAs($user)->get('/schedule')->assertOk()->assertViewIs('schedule.index')->assertViewHas('data')->assertViewHas('cursos');
+
+        $this->actingAs($user)->from('/schedule')->post('/schedule', [
+            'curso_id' => 'C-001',
+            'dia_semana' => 'Lunes',
+            'hora_inicio' => '08:00',
+            'hora_fin' => '10:00',
+            'aula' => 'A-101',
+        ])->assertRedirect(route('schedule.index'))->assertSessionHas('success', '✅ Horario creado exitosamente.');
+
+        $this->actingAs($user)->delete('/schedule/S-001')->assertRedirect(route('schedule.index'))->assertSessionHas('success', '✅ Horario eliminado.');
+    }
+
+    public function test_schedule_is_blocked_when_feature_gate_is_inactive(): void
+    {
+        Http::fake([
+            'http://127.0.0.1:8001/' => Http::response([
+                'product' => 'colegio-basico',
+                'active_optional_features' => [],
+                'academic_settings' => [],
+            ], 200),
+        ]);
+
+        $user = new User([
+            'name' => 'Schedule User',
+            'email' => 'schedule-off@example.com',
+            'password' => bcrypt('secret'),
+        ]);
+
+        $this->actingAs($user)->get('/schedule')->assertNotFound();
     }
 
     public function test_enrollment_index_store_update_and_destroy(): void
