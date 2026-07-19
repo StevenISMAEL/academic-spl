@@ -31,9 +31,16 @@ COPY ${PRODUCT_DIR}/backend/ ./${PRODUCT_DIR}/backend/
 
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Instalar PyYAML por si no está en requirements.txt (lo usa el entrypoint)
+RUN pip install --no-cache-dir pyyaml
+
+# Script de inicio: ejecuta migraciones y luego arranca uvicorn
+COPY docker/templates/backend-entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 EXPOSE 8000
 
-CMD ["uvicorn", "run_app:app", "--host", "0.0.0.0", "--port", "8000"]
+ENTRYPOINT ["/entrypoint.sh"]
 
 
 # Ejemplo de build parametrizado (lo que hará el pipeline en Sprint 3):
