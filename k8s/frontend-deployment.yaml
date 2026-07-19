@@ -72,16 +72,16 @@ spec:
 
         livenessProbe:
           httpGet:
-            path: /
+            path: /favicon.ico
             port: 80
-          initialDelaySeconds: 20
-          periodSeconds: 15
-          failureThreshold: 3
+          initialDelaySeconds: 60
+          periodSeconds: 20
+          failureThreshold: 5
 
         readinessProbe:
           httpGet:
-            path: /
+            path: /favicon.ico
             port: 80
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          failureThreshold: 3
+          initialDelaySeconds: 30
+          periodSeconds: 15
+          failureThreshold: 5
