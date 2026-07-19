@@ -42,7 +42,7 @@ jobs:
       run: |
         python -m pytest \
           --cov=core_assets \
-          --cov-report=xml \
+          --cov-report=xml:coverage.xml \
           --cov-report=term-missing
 
     # ─── PHP: Setup + Tests + Coverage ───────────────────────────────────────────
@@ -71,7 +71,10 @@ jobs:
 
     - name: Run PHPUnit with Clover Coverage
       working-directory: core_assets/frontend/laravel-shell
-      run: vendor/bin/phpunit --coverage-clover clover.xml
+      run: |
+        vendor/bin/phpunit --coverage-clover clover.xml
+        test -f clover.xml
+        ls -l clover.xml
       env:
         XDEBUG_MODE: coverage
 
@@ -104,10 +107,10 @@ jobs:
         args: >
           -Dsonar.projectKey=StevenISMAEL_academic-spl
           -Dsonar.organization=stevenismael
-          -Dsonar.python.coverage.reportPaths=coverage.xml
-          -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.sources=core_assets
           -Dsonar.tests=tests_core,core_assets/frontend/laravel-shell/tests
+          -Dsonar.python.coverage.reportPaths=coverage.xml
+          -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.exclusions=**/__pycache__/**,**/.venv/**,**/*.pyc,**/vendor/**,**/node_modules/**,**/public/build/**
           -Dsonar.qualitygate.wait=true
           -Dsonar.qualitygate.timeout=300
