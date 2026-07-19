@@ -75,6 +75,12 @@ jobs:
       env:
         XDEBUG_MODE: coverage
 
+    - name: Verify coverage artifacts exist
+      run: |
+        test -f coverage.xml
+        test -f core_assets/frontend/laravel-shell/clover.xml
+        ls -l coverage.xml core_assets/frontend/laravel-shell/clover.xml
+
     - name: Upload coverage artifacts for SonarCloud
       uses: actions/upload-artifact@v4
       with:
@@ -82,7 +88,6 @@ jobs:
         path: |
           coverage.xml
           core_assets/frontend/laravel-shell/clover.xml
-
 
     - name: Clear Laravel view cache before SonarCloud
       run: |
@@ -102,10 +107,10 @@ jobs:
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.sources=core_assets
-          -Dsonar.tests=tests_core
+          -Dsonar.tests=tests_core,core_assets/frontend/laravel-shell/tests
           -Dsonar.exclusions=**/__pycache__/**,**/.venv/**,**/*.pyc,**/vendor/**,**/node_modules/**,**/public/build/**
-          -Dsonar.test.exclusions=**/tests/**,**/tests_core/**
           -Dsonar.qualitygate.wait=true
+          -Dsonar.qualitygate.timeout=300
 
 
   # ===========================================================================
