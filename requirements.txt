@@ -6,7 +6,7 @@ grpcio==1.64.1
 grpcio-tools==1.64.1
 jsonschema==4.22.0
 sqlalchemy==2.0.30
-python-jose[cryptography]==3.3.0
+python-jose[cryptography]==3.4.0
 passlib[bcrypt]==1.7.4
 bcrypt==4.1.2
 # --- Monitoreo (DevOps) ---
