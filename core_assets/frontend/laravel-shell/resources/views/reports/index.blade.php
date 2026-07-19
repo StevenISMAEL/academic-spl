@@ -1,6 +1,9 @@
 <!DOCTYPE html>
-<html>
-<head><title>Reports</title></head>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Reports</title>
+</head>
 <body>
     <h1>Reports</h1>
     <p>Reportes: {{ json_encode($reportes) }}</p>
