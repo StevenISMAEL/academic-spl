@@ -277,7 +277,13 @@ jobs:
         echo "Cloud SQL IP: ${SQL_IP}"
 
         echo "Modificando YAMLs para apuntar a Staging..."
-        sed -i 's/academic-spl/staging/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/namespace: academic-spl/namespace: staging/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/name: academic-spl-config/name: staging-config/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/name: academic-spl-db-secret/name: staging-db-secret/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/name: academic-spl-service/name: staging-service/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/name: academic-spl-deployment/name: staging-deployment/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/name: academic-spl-hpa/name: staging-hpa/g' k8s/*.yaml k8s/*.yml
+        sed -i 's/app: academic-spl/app: staging/g' k8s/*.yaml k8s/*.yml
 
         echo "Inyectando IP de Cloud SQL y contraseña en el secret..."
         sed -i "s|CLOUD_SQL_IP|${SQL_IP}|g" k8s/db-secret.yaml
@@ -289,7 +295,7 @@ jobs:
         kubectl apply -f k8s/
 
         echo "Forzando actualización de los pods con la nueva imagen..."
-        kubectl rollout restart deployment academic-spl-deployment -n staging
+        kubectl rollout restart deployment staging-deployment -n staging
 
     - name: Deploy Observability Stack
       continue-on-error: true
@@ -340,7 +346,7 @@ jobs:
         ATTEMPTS=0
         while [ -z "$STAGING_IP" ] && [ $ATTEMPTS -lt 30 ]; do
           sleep 10
-          STAGING_IP=$(kubectl get svc academic-spl-service -n staging \
+          STAGING_IP=$(kubectl get svc staging-service -n staging \
             -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
           ATTEMPTS=$((ATTEMPTS+1))
         done
