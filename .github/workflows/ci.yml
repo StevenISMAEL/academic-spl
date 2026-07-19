@@ -348,7 +348,7 @@ jobs:
             k8s/service.yml | kubectl apply -f -
 
           # 5. Desplegar CONFIGMAP del frontend (con URL interna del backend)
-          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local:8000"
+          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local"
           sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-configmap.yaml \
             | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
             | sed "s|PRODUCT_DISPLAY_NAME|${PRODUCT}|g" \
@@ -557,7 +557,7 @@ jobs:
             k8s/hpa.yml | kubectl apply -f -
 
           # Frontend: configmap + secret + deployment + service
-          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local:8000"
+          BACKEND_SVC="http://${PRODUCT}-backend-service.${NS}.svc.cluster.local"
 
           sed "s|namespace: PRODUCT_NAME|namespace: ${NS}|g" k8s/frontend-configmap.yaml \
             | sed "s|PRODUCT_NAME|${PRODUCT}|g" \
