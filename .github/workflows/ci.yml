@@ -123,27 +123,52 @@ jobs:
 
 
   # ===========================================================================
-  # JOB 2: CONTAINERIZE & SECURITY SCAN
+  # JOB 2: DISCOVER PRODUCTS
+  # Lee dinámicamente los productos generados en derived_products/
+  # ===========================================================================
+  discover-products:
+    name: Discover SPL Products
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set Product Matrix
+        id: set-matrix
+        run: |
+          PRODUCTS_JSON="["
+          FIRST=true
+          for DIR in derived_products/*; do
+            if [ -d "$DIR" ]; then
+              NAME=$(basename "$DIR")
+              if [ "$FIRST" = true ]; then
+                FIRST=false
+              else
+                PRODUCTS_JSON="$PRODUCTS_JSON,"
+              fi
+              PRODUCTS_JSON="$PRODUCTS_JSON{\"name\":\"$NAME\",\"dir\":\"derived_products/$NAME\",\"config_path\":\"derived_products/$NAME/backend/product_config.yaml\"}"
+            fi
+          done
+          PRODUCTS_JSON="$PRODUCTS_JSON]"
+          echo "matrix=$PRODUCTS_JSON" >> $GITHUB_OUTPUT
+          echo "Descubiertos: $PRODUCTS_JSON"
+
+  # ===========================================================================
+  # JOB 3: CONTAINERIZE & SECURITY SCAN
   # Construye y escanea la imagen Docker de cada producto del SPL
   # ===========================================================================
   docker-build:
     name: Containerize & Security Scan
-    needs: build-and-test
+    needs: [build-and-test, discover-products]
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     strategy:
       matrix:
-        # Lista de productos derivados disponibles en el repositorio.
-        # Añadir una entrada aquí por cada producto generado con workbench.py.
-        product:
-          - name: utn
-            dir: derived_products/utn
-            config_path: derived_products/utn/backend/product_config.yaml
-          - name: utn2
-            dir: derived_products/utn2
-            config_path: derived_products/utn2/backend/product_config.yaml
+        product: ${{ fromJson(needs.discover-products.outputs.matrix) }}
     steps:
     - name: Checkout Code
       uses: actions/checkout@v4
@@ -312,7 +337,10 @@ jobs:
         REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
         # Iterar sobre cada producto derivado registrado
-        for PRODUCT in utn utn2; do
+        for PRODUCT_DIR in derived_products/*; do
+          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
+          PRODUCT=$(basename "$PRODUCT_DIR")
+          
           echo ""
           echo "======================================================"
           echo "  Desplegando producto: ${PRODUCT} → namespace: staging-${PRODUCT}"
@@ -378,7 +406,9 @@ jobs:
 
         echo ""
         echo "✅ Todos los productos desplegados. Reiniciando pods..."
-        for PRODUCT in utn utn2; do
+        for PRODUCT_DIR in derived_products/*; do
+          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
+          PRODUCT=$(basename "$PRODUCT_DIR")
           NS="staging-${PRODUCT}"
           kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${NS} || true
           kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${NS} || true
@@ -520,7 +550,10 @@ jobs:
 
         REPO_LC=$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')
 
-        for PRODUCT in utn utn2; do
+        for PRODUCT_DIR in derived_products/*; do
+          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
+          PRODUCT=$(basename "$PRODUCT_DIR")
+          
           echo ""
           echo "======================================================"
           echo "  Producción: ${PRODUCT} → namespace: ${PRODUCT}"
@@ -585,7 +618,9 @@ jobs:
 
         echo ""
         echo "✅ Producción actualizada. Reiniciando pods..."
-        for PRODUCT in utn utn2; do
+        for PRODUCT_DIR in derived_products/*; do
+          if [ ! -d "$PRODUCT_DIR" ]; then continue; fi
+          PRODUCT=$(basename "$PRODUCT_DIR")
           kubectl rollout restart deployment ${PRODUCT}-backend-deployment  -n ${PRODUCT} || true
           kubectl rollout restart deployment ${PRODUCT}-frontend-deployment -n ${PRODUCT} || true
         done
