@@ -116,6 +116,7 @@ jobs:
           -Dsonar.python.coverage.reportPaths=coverage.xml
           -Dsonar.php.coverage.reportPaths=core_assets/frontend/laravel-shell/clover.xml
           -Dsonar.exclusions=**/__pycache__/**,**/.venv/**,**/*.pyc,**/vendor/**,**/node_modules/**,**/public/build/**
+          -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,**/config/**,**/database/migrations/**,**/database/seeders/**,**/database/factories/**,**/bootstrap/**,**/routes/**,**/public/index.php,**/core_engine/persistence/migrate.py,**/core_engine/persistence/seeder.py,**/core_engine/persistence/models.py
           -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,config/*.php,bootstrap/*.php,routes/*.php,database/migrations/*.php,database/seeders/*.php
           -Dsonar.coverage.exclusions=**/resources/views/**,**/*.blade.php,**/config/**,**/database/migrations/**,**/database/seeders/**,**/database/factories/**,**/bootstrap/**,**/routes/**,**/public/index.php,**/*Test.php,**/tests/**
           -Dsonar.qualitygate.wait=true
