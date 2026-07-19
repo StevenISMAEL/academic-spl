@@ -45,6 +45,11 @@ jobs:
           --cov-report=xml:coverage.xml \
           --cov-report=term-missing
 
+    - name: Confirm Python coverage artifact exists
+      run: |
+        test -f coverage.xml
+        ls -l coverage.xml
+
     # ─── PHP: Setup + Tests + Coverage ───────────────────────────────────────────
     - name: Set up PHP 8.3
       uses: shivammathur/setup-php@v2
@@ -70,8 +75,8 @@ jobs:
         echo "APP_DEBUG=true" >> .env
 
     - name: Run PHPUnit with Clover Coverage
-      working-directory: core_assets/frontend/laravel-shell
       run: |
+        cd core_assets/frontend/laravel-shell
         vendor/bin/phpunit --coverage-clover clover.xml
         test -f clover.xml
         ls -l clover.xml
