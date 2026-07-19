@@ -24,7 +24,7 @@ COPY run_app.py .
 
 # Se copia SOLO la carpeta del producto que se está ensamblando.
 # El pipeline CI/CD reemplaza <PRODUCT_DIR> antes del build.
-COPY products/<PRODUCT_DIR>/ ./products/<PRODUCT_DIR>/
+COPY products/colegio-basico/ ./products/colegio-basico/
 
 RUN pip install --no-cache-dir -r requirements.txt
 

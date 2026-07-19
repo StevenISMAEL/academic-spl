@@ -158,9 +158,6 @@ jobs:
         test -f docker/templates/backend.Dockerfile.tpl
         test -d products/${{ matrix.product.name }}
         cp docker/templates/backend.Dockerfile.tpl Dockerfile.${{ matrix.product.name }}
-        # Reemplazar el placeholder <PRODUCT_DIR> con el directorio real del producto
-        sed -i "s|products/<PRODUCT_DIR>/|products/${{ matrix.product.name }}/|g" \
-          Dockerfile.${{ matrix.product.name }}
 
     # --- PASO DEVSECOPS: ESCANEO DE VULNERABILIDADES (TRIVY) ---
     - name: Build local image for security scan (${{ matrix.product.name }})
