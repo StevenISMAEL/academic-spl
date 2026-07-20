@@ -157,7 +157,7 @@ data:
           "gridPos": { "h": 6, "w": 12, "x": 0, "y": 12 },
           "targets": [
             {
-              "expr": "sum(kube_deployment_status_replicas_ready{namespace=~\"utn.*|staging-utn.*\"}) by (namespace, deployment)",
+              "expr": "sum(kube_deployment_status_replicas_ready{namespace!~\"kube-.*|observability|default|gke-.*|gmp-.*\"}) by (namespace, deployment)",
               "legendFormat": "{{ namespace }} / {{ deployment }}",
               "refId": "A"
             }
@@ -173,7 +173,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(container_memory_working_set_bytes{namespace=~\"utn.*|staging-utn.*\", container!=\"POD\", container!=\"\"}) by (pod, namespace)",
+              "expr": "sum(container_memory_working_set_bytes{namespace!~\"kube-.*|observability|default|gke-.*|gmp-.*\", container!=\"POD\", container!=\"\"}) by (pod, namespace)",
               "legendFormat": "{{ namespace }}/{{ pod }}",
               "refId": "A"
             }
@@ -202,7 +202,7 @@ data:
           },
           "targets": [
             {
-              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=~\"utn.*|staging-utn.*\", container!=\"POD\", container!=\"\"}[5m])) by (pod, namespace)",
+              "expr": "sum(rate(container_cpu_usage_seconds_total{namespace!~\"kube-.*|observability|default|gke-.*|gmp-.*\", container!=\"POD\", container!=\"\"}[5m])) by (pod, namespace)",
               "legendFormat": "{{ namespace }}/{{ pod }}",
               "refId": "A"
             }

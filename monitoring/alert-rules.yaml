@@ -92,7 +92,7 @@ spec:
         - alert: AcademicSPLPodCrashLooping
           expr: |
             rate(kube_pod_container_status_restarts_total{
-              namespace=~"utn.*|staging-utn.*"
+              namespace!~"kube-.*|observability|default|gke-.*|gmp-.*"
             }[15m]) > 0
           for: 5m
           labels:
@@ -109,7 +109,7 @@ spec:
         - alert: AcademicSPLPodNotReady
           expr: |
             kube_pod_status_ready{
-              namespace=~"utn.*|staging-utn.*",
+              namespace!~"kube-.*|observability|default|gke-.*|gmp-.*",
               condition="true"
             } == 0
           for: 10m
@@ -128,12 +128,12 @@ spec:
           expr: |
             (
               sum(container_memory_working_set_bytes{
-                namespace=~"utn.*|staging-utn.*",
+                namespace!~"kube-.*|observability|default|gke-.*|gmp-.*",
                 container!="POD", container!=""
               }) by (pod, namespace)
               /
               sum(container_spec_memory_limit_bytes{
-                namespace=~"utn.*|staging-utn.*",
+                namespace!~"kube-.*|observability|default|gke-.*|gmp-.*",
                 container!="POD", container!=""
               }) by (pod, namespace)
             ) > 0.85
