@@ -1,0 +1,30 @@
+Activar entorno venv:
+  .\.venv\Scripts\activate
+
+Crear un producto: 
+.venv\Scripts\python.exe workbench.py
+Ruta : cd D:\Octavo\FABRICA\ProyectoFinal\academic-spl>
+
+Correr backend:
+..\..\..\.venv\Scripts\python.exe -m uvicorn run_app:app --port 8001 --reload
+Ruta: cd D:\Octavo\FABRICA\ProyectoFinal\academic-spl\derived_products
+
+Correr front:
+php artisan serve
+Ruta: cd D:\Octavo\FABRICA\ProyectoFinal\academic-spl\core_assets\frontend\laravel-shell>
+
+Borra los productos
+Remove-Item -Recurse -Force "derived_products\*"
+
+
+Borrar pods:
+kubectl get namespaces -o jsonpath='{.items[*].metadata.name}' | tr ' ' '\n' | grep -v -E "^(default|kube-.*|academic-spl|observability)$" | xargs -I {} kubectl delete namespace {}
+
+Get pods:
+kubectl get pods -A | grep -E "utn|staging"
+Get ips:
+kubectl get svc -A | grep LoadBalancer
+
+Grafana:
+kubectl get svc -n observability
+kubectl patch svc prometheus-grafana -n observability -p '{"spec": {"type": "LoadBalancer"}}'
